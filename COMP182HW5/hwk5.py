@@ -99,7 +99,7 @@ def compute_nni_neighborhood(t):
         return result
 
     node_refs_list = []
-    preorder_traverse_printer(t, node_refs_list)
+    traversal_printer(t, node_refs_list)
 
     # for ref in list:
     #     print "reference ", ref
@@ -112,17 +112,19 @@ def compute_nni_neighborhood(t):
     return result
 # end of function
 
-def random_tree(sequences, properties):
+def random_tree(sequences):
+    # Todo: currently assume to take a tuple
     if not sequences:
         raise InputError("Input is empty!")
         # return result
 
-    result = make_new_node("root", properties)
+    result = make_new_node("root")
     # get info of nodes from the dictionary in sequences
     taxa_seqs = sequences[1]
     # initialized a dictionary to store FullBiTrees of each leaf in all leaves
     # each leaf is labeled with taxon, sequence
-    leaves_to_use = make_list_of_leaves(taxa_seqs, properties)
+    leaves_to_use = make_list_of_leaves(taxa_seqs, "seq")
+    # Todo: sequence_key hard-coded
 
     # base case n = 1
     if len(leaves_to_use) == 1:
@@ -137,23 +139,54 @@ def random_tree(sequences, properties):
         internal_nodes = [result]
         while len(leaves_to_use) > 0:
             new_node = random_node(leaves_to_use)
-            internal_nodes = randon_insert(new_node, internal_nodes, properties)
+            internal_nodes = random_insert(new_node, internal_nodes)
 
     return result
 # end of function
 
 def compute_ps(tree, sequence_key, m):
     candidate_key = "candidate"
+    traversal_labeling(tree, candidate_key, sequence_key)
+    # todo: ask: I add a property "candidate" to store Sv,i, but the prop_key cannot be guaranteed to be consistant
+    # with the input tree. Yet I don't know how to set that property on the way dow without risking
+    # erasing what's stored on the way up""
     attach_all_cand_seqs(tree, sequence_key, candidate_key, m)
     ps = label_for_min_diff(tree, sequence_key, candidate_key, m, 0)
     return ps
 # end of function
 
 def infer_evolutionary_tree(seqfile, outfile, numrestarts):
-    pass
+    file_content = read_phylip(seqfile)
+    m = file_content[0]
+    min = float('inf')
+    candidate_tree = FullBiTree("")
+    for i in range(numrestarts):
+        a_tree = random_tree(file_content) # Todo: double check input type for random_tree
+        all_trees = compute_nni_neighborhood(a_tree)
+        for tree in all_trees:
+            score = compute_ps(tree, "seq", m)
+            if score < min:
+                min = score
+                candidate_tree = tree
+    newick_str = write_newick(candidate_tree)
+    line = "input file: {0}, optimal parsimony score is {1}\n" \
+    "tree is {2}\n\n".format(seqfile, min, newick_str)
+    with open(outfile, 'a') as file:
+        file.write(line)
+    file.closed
+    return newick_str
 
 
 ################################### Helper functions ################################
+def traversal_labeling(tree, candidate_key, sequence_key):
+    tree.set_node_property(candidate_key, "")
+    if tree.is_leaf():
+        return
+    else:
+        tree.set_node_property(sequence_key, "")
+        traversal_labeling(tree.get_left_child(), candidate_key, sequence_key)
+        traversal_labeling(tree.get_right_child(), candidate_key, sequence_key)
+# end of function
 
 def label_for_min_diff(tree, sequence_key, candidate_key, m, accumulator, parent_seq_str=None, parent_seq=None):
     """Takes a full binary tree tree, string sequence_key, string candidate_key, int m, int acculmulator,
@@ -214,6 +247,7 @@ def attach_all_cand_seqs(tree, seq_key, candidate_key, m):
     another "candidate_key" for accessing a list of sets S_{v,i} that includes all possible candidate characters
     for inferring sequence of the current node, and "m" the length of sequence.
     Modify (in place) each node candidate_key property with a list of sets S_{v,i} """
+
     s_tree = []
     if tree.is_leaf():
         # change sequence from list of chars to list of sets? Yes, document said so
@@ -242,10 +276,8 @@ def attach_all_cand_seqs(tree, seq_key, candidate_key, m):
         return tree.get_node_property(candidate_key)
 # end of function
 
-def make_new_node(name, properties):
+def make_new_node(name):
     node = FullBiTree(name)
-    for key in properties:
-        node.set_node_property(properties[key], "")
     return node
 # end of function
 
@@ -257,12 +289,12 @@ def hamming(seq1, seq2):
     return score
 # end of function
 
-def make_list_of_leaves(taxa_seqs, properties):
+def make_list_of_leaves(taxa_seqs, sequence_key):
     list = []
     for taxon in taxa_seqs:
-        leaf = make_new_node(taxon, properties)
-        leaf.set_node_property(properties["taxon_key"], taxon)
-        leaf.set_node_property(properties["sequence_key"], taxa_seqs[taxon])
+        leaf = make_new_node(taxon)
+        leaf.set_node_property("taxon_key", taxon)
+        leaf.set_node_property(sequence_key, taxa_seqs[taxon])
         list.append(leaf)
     return list
 # end of function
@@ -273,14 +305,14 @@ def random_node(leaves_to_use):
     return node
 # end of function
 
-def randon_insert(new_node, internal_nodes, properties):
+def random_insert(new_node, internal_nodes):
     internal_nodes_to_return = []
     internal_node = random.choice(internal_nodes)
     internal_nodes_to_return.append(internal_node)
     internal_nodes.remove(internal_node)
     left_child = internal_node.get_left_child()
     right_child =  internal_node.get_right_child()
-    new_internal_node = make_new_node("dummy", properties)
+    new_internal_node = make_new_node("dummy")
 
     coin = random.randint(0,9)
     if coin >= 5:
@@ -296,7 +328,7 @@ def randon_insert(new_node, internal_nodes, properties):
     return internal_nodes_to_return
 # end of function
 
-def preorder_traverse_printer(tree, list_of_ref_to_nodes, print_mode=False, property_key=None):
+def traversal_printer(tree, list_of_ref_to_nodes, print_mode=False, property_key=None):
     list_of_ref_to_nodes.append(tree)
     if print_mode:
         print tree.get_name()
@@ -306,8 +338,8 @@ def preorder_traverse_printer(tree, list_of_ref_to_nodes, print_mode=False, prop
     if tree.is_leaf():
         return list_of_ref_to_nodes
 
-    preorder_traverse_printer(tree.get_left_child(), list_of_ref_to_nodes, print_mode, property_key)
-    preorder_traverse_printer(tree.get_right_child(), list_of_ref_to_nodes, print_mode, property_key)
+    traversal_printer(tree.get_left_child(), list_of_ref_to_nodes, print_mode, property_key)
+    traversal_printer(tree.get_right_child(), list_of_ref_to_nodes, print_mode, property_key)
 # end of function
 
 def nni_help(current, result, whole_tree):
@@ -388,22 +420,16 @@ def nni_able(tree):
 
 ################################  testing functions  ##################################
 def test_compute_ps(func, m, evo_tree_dict):
-    taxon_key = "taxon"
-    seq_key = "sequence"
-    candidate_key = "candidate"
-    default_properties = {}
-    default_properties["taxon_key"] = taxon_key
-    default_properties["sequence_key"] = seq_key
-    default_properties["candidate_key"] = candidate_key
-    a_random_tree = random_tree(evo_tree_dict, default_properties)
+    print m, evo_tree_dict
+    seq_key = "seq"
+    a_random_tree = random_tree(evo_tree_dict)
     print "parsimony score: ", func(a_random_tree, seq_key, m)
 # end of function
 
-def test_make_new_node(name, properties):
-    print_test_head(make_new_node, taxon_key, seq_key)
-    node = make_new_node(name, properties)
-    print seq_key, " is ", node.get_node_property(seq_key)
-
+def test_make_new_node(name, sequence_key):
+    print_test_head(make_new_node, sequence_key)
+    node = make_new_node(name, sequence_key)
+    print sequence_key, " is ", node.get_node_property(sequence_key)
 # end of function
 
 def test_label_for_min_diff(func, tree, m):
@@ -411,7 +437,7 @@ def test_label_for_min_diff(func, tree, m):
     sequence_key = "seq"
     candidate_key = "candidate_seq"
     print "parsimony score: ", func(tree, sequence_key, candidate_key, m, 0)
-    preorder_traverse_printer(tree, [], True, sequence_key)
+    traversal_printer(tree, [], True, sequence_key)
     # Testing  label_for_min_diff
     # Input:  root(Neanderthal, dummy(Pongo_pygmaeus_1, dummy(Chinese, dummy(Georgian, Berber))))
     # Input2:  5
@@ -460,7 +486,7 @@ def test_label_for_min_diff(func, tree, m):
 def test_attach_all_cand_seqs(func, tree, sequence_key, candidate_key, m):
     print_test_head(func, tree, sequence_key)
     func(tree, sequence_key, candidate_key, m)
-    preorder_traverse_printer(tree, []) # , True, "candidate_seq"
+    traversal_printer(tree, []) # , True, "candidate_seq"
     # Note: Testing overlapping S_{v,i}, "?" in Yoruba
     # Testing  attach_all_cand_seqs
     # Input:  root(Gorilla_gorilla_1, dummy(Yoruba, dummy(Pongo_pygmaeus_abelii_1, Hylobates_lar)))
@@ -521,12 +547,11 @@ def test_hamming(func, seq1, seq2):
 
 # end of function
 
-def test_make_list_of_leaves(func, sequences, properties):
+def test_make_list_of_leaves(func, sequences, sequence_key):
     print_test_head(func, sequences)
-    list_of_nodes = func(sequences, properties)
+    list_of_nodes = func(sequences, sequence_key)
     for elem in list_of_nodes:
-        print "taxon: ", elem.get_node_property(taxon_key)
-        print "seq: ", elem.get_node_property(seq_key)
+        print sequence_key, elem.get_node_property(sequence_key)
 
     # Testing
     # make_list_of_leaves
@@ -616,7 +641,7 @@ def test_nni_help(func, tree, result):
 
     result.append(new_tree)
     list = []
-    preorder_traverse_printer(tree, list)
+    traversal_printer(tree, list)
 
     # for ref in list:
     #     print "reference ", ref
@@ -697,15 +722,15 @@ def test_write_newick(func, t):
     # ((a, b), (x, y))
 # end of function
 
-def test_random_tree(func, sequences, properties):
+def test_random_tree(func, sequences, sequence_key):
     print_test_head(func, sequences)
-    tree = func(sequences, properties)
+    tree = func(sequences, sequence_key)
     node_refs_list = []
-    preorder_traverse_printer(tree, node_refs_list)
+    traversal_printer(tree, node_refs_list)
     for node in node_refs_list:
         if node.is_leaf():
-            print "taxon: ", node.get_node_property(taxon_key)
-            print "seq: ", node.get_node_property(seq_key)
+            print "taxon: ", node.get_node_property("taxon_key")
+            print "seq: ", node.get_node_property(sequence_key)
 
     return tree
     # Testing  random_tree
@@ -769,15 +794,19 @@ seq2 = random.choice(test_evo_tree_dict[1].values())
 # print test_hamming(hamming, seq2, seq1)
 
 # calling tests
-# test_make_new_node("test", properties))
+# test_make_new_node("test", sequence_key))
 # test_make_list_of_leaves(make_list_of_leaves, test_evo_tree_dict[1])
 
 # test_write_newick(write_newick, a_random_tree)
 
 # test_attach_all_cand_seqs(attach_all_cand_seqs, a_random_tree, "seq", "candidate_seq", test_evo_tree_dict[0])
 # test_label_for_min_diff(label_for_min_diff, a_random_tree, test_evo_tree_dict[0])
-test_compute_ps(compute_ps, test_evo_tree_dict[1], test_evo_tree_dict[0])
-# species = list(evo_tree[1].keys())
+# test_compute_ps(compute_ps, evo_tree_dict[0], evo_tree_dict)
+# print infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 100)# species = list(evo_tree[1].keys())
+
+print infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
+print infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
+
 # for x in species:
 # 	print x
 # print "random ", random.choice(species)
