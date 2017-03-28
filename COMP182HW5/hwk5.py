@@ -113,7 +113,7 @@ def compute_nni_neighborhood(t):
 # end of function
 
 def random_tree(sequences):
-    # Todo: currently assume to take a tuple
+    # TODO: currently assume to take a tuple
     if not sequences:
         raise InputError("Input is empty!")
         # return result
