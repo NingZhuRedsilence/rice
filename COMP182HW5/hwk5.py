@@ -3,6 +3,7 @@ import abc
 from FullBiTree import * # vs import FullBiTree?
 import copy
 import random
+from comp182 import *
 
 def read_phylip(filename):
     """
@@ -113,14 +114,14 @@ def compute_nni_neighborhood(t):
 # end of function
 
 def random_tree(sequences):
-    # TODO: currently assume to take a tuple
+    # TODO: currently assume to take a dictionary
     if not sequences:
         raise InputError("Input is empty!")
         # return result
 
     result = make_new_node("root")
     # get info of nodes from the dictionary in sequences
-    taxa_seqs = sequences[1]
+    taxa_seqs = sequences
     # initialized a dictionary to store FullBiTrees of each leaf in all leaves
     # each leaf is labeled with taxon, sequence
     leaves_to_use = make_list_of_leaves(taxa_seqs, "seq")
@@ -156,24 +157,35 @@ def compute_ps(tree, sequence_key, m):
 # end of function
 
 def infer_evolutionary_tree(seqfile, outfile, numrestarts):
+    # Todo: need testing
     file_content = read_phylip(seqfile)
     m = file_content[0]
+    sequences = file_content[1]
     min = float('inf')
+    scores_vs_steps = {}
+    all_scores = []
+    total_steps = 0
     candidate_tree = FullBiTree("")
     for i in range(numrestarts):
-        a_tree = random_tree(file_content) # Todo: double check input type for random_tree
+        a_tree = random_tree(sequences) # Todo: double check input type for random_tree
         all_trees = compute_nni_neighborhood(a_tree)
         for tree in all_trees:
+            total_steps += 1
             score = compute_ps(tree, "seq", m)
+            all_scores.append(score)
             if score < min:
                 min = score
+                scores_vs_steps[total_steps] = min
                 candidate_tree = tree
     newick_str = write_newick(candidate_tree)
-    line = "input file: {0}, optimal parsimony score is {1}\n" \
-    "tree is {2}\n\n".format(seqfile, min, newick_str)
+    line = "input file: {0}, optimal parsimony score is {1}, took {2} steps\n" \
+    "tree is {3}\n\n"\
+        .format(seqfile, min, len(scores_vs_steps), newick_str)
     with open(outfile, 'a') as file:
         file.write(line)
     file.closed
+    plot_lines([scores_vs_steps], seqfile, "Steps", "Score at each step")
+    show()
     return newick_str
 
 
@@ -188,7 +200,7 @@ def traversal_labeling(tree, candidate_key, sequence_key):
         traversal_labeling(tree.get_right_child(), candidate_key, sequence_key)
 # end of function
 
-def label_for_min_diff(tree, sequence_key, candidate_key, m, accumulator, parent_seq_str=None, parent_seq=None):
+def label_for_min_diff(tree, sequence_key, candidate_key, m, accumulator, parent_seq_str=None, parent_seq_list_of_sets=None):
     """Takes a full binary tree tree, string sequence_key, string candidate_key, int m, int acculmulator,
     string parent_seq_str and a list of sets parent_seq
     On the way down to the leaves, label internal nodes with inferred sequences
@@ -211,7 +223,7 @@ def label_for_min_diff(tree, sequence_key, candidate_key, m, accumulator, parent
         raise InputError("Node " + tree.get_name + " has no candidate sequence!")
         return accumulator
 
-    str_inferred_seq = generate_seq_label(inferred_seq, cand_seq, m, parent_seq)
+    str_inferred_seq = generate_seq_label(inferred_seq, cand_seq, m, parent_seq_list_of_sets)
     tree.set_node_property(sequence_key, str_inferred_seq)
 
     my_seq = tree.get_node_property(sequence_key)
@@ -802,10 +814,9 @@ seq2 = random.choice(test_evo_tree_dict[1].values())
 # test_attach_all_cand_seqs(attach_all_cand_seqs, a_random_tree, "seq", "candidate_seq", test_evo_tree_dict[0])
 # test_label_for_min_diff(label_for_min_diff, a_random_tree, test_evo_tree_dict[0])
 # test_compute_ps(compute_ps, evo_tree_dict[0], evo_tree_dict)
-# print infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 100)# species = list(evo_tree[1].keys())
-
-print infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
-print infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
+# infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
+infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
+# infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
 
 # for x in species:
 # 	print x
