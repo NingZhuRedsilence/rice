@@ -67,12 +67,8 @@ def write_newick(t):
 def compute_nni_neighborhood(t):
     """ Takes a full binary tree as input,
     returns the set of all possible nearest-neighbor-trees of a given evolutionary tree.
-
-    Arguments:
-    tree - a FullBiTree
-
-    Returns:
-    A set of full binary trees encoding all possible trees whose structure can be obtained by
+    :param t: - a FullBiTree
+    :return: A lsit of full binary trees encoding all possible trees whose structure can be obtained by
     only 1 nearest-neighbor move on the input tree
     """
 
@@ -114,7 +110,12 @@ def compute_nni_neighborhood(t):
 # end of function
 
 def random_tree(sequences):
-    # TODO: currently assume to take a dictionary
+    """
+    todo
+    :param sequences:
+    :return:
+    """
+    # currently assume to take a dictionary
     if not sequences:
         raise InputError("Input is empty!")
         # return result
@@ -146,6 +147,13 @@ def random_tree(sequences):
 # end of function
 
 def compute_ps(tree, sequence_key, m):
+    """
+    todo
+    :param tree:
+    :param sequence_key:
+    :param m:
+    :return:
+    """
     candidate_key = "candidate"
     traversal_labeling(tree, candidate_key, sequence_key)
     # todo: ask: I add a property "candidate" to store Sv,i, but the prop_key cannot be guaranteed to be consistant
@@ -157,7 +165,13 @@ def compute_ps(tree, sequence_key, m):
 # end of function
 
 def infer_evolutionary_tree(seqfile, outfile, numrestarts):
-    # Todo: need testing
+    """
+    todo
+    :param seqfile:
+    :param outfile:
+    :param numrestarts:
+    :return:
+    """
     file_content = read_phylip(seqfile)
     m = file_content[0]
     sequences = file_content[1]
@@ -167,7 +181,7 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     total_steps = 0
     candidate_tree = FullBiTree("")
     for i in range(numrestarts):
-        a_tree = random_tree(sequences) # Todo: double check input type for random_tree
+        a_tree = random_tree(sequences) # random_tree takes in a dictionary
         all_trees = compute_nni_neighborhood(a_tree)
         for tree in all_trees:
             total_steps += 1
@@ -431,6 +445,23 @@ def nni_able(tree):
 # end of function
 
 ################################  testing functions  ##################################
+def test_infer_evolutionary_tree(seqfile, outfile, numrestarts):
+    print_test_head(infer_evolutionary_tree, seqfile, numrestarts)
+    print infer_evolutionary_tree(seqfile, outfile, numrestarts)
+
+    # Testing  infer_evolutionary_tree
+    # Input:  test_seqs2.phylip
+    # Input2:  5
+    # Expected output:
+    # (Gorilla_gorilla_1, (Hylobates_lar, (Pongo_pygmaeus_abelii_1, Yoruba)))
+
+    # Testing  infer_evolutionary_tree
+    # Input:  test_seqs.phylip
+    # Input2:  5
+    # Expected output:
+    # (Chinese, (Georgian, (Pongo_pygmaeus_1, (Neanderthal, Berber))))
+# end of function
+
 def test_compute_ps(func, m, evo_tree_dict):
     print m, evo_tree_dict
     seq_key = "seq"
@@ -814,8 +845,10 @@ seq2 = random.choice(test_evo_tree_dict[1].values())
 # test_attach_all_cand_seqs(attach_all_cand_seqs, a_random_tree, "seq", "candidate_seq", test_evo_tree_dict[0])
 # test_label_for_min_diff(label_for_min_diff, a_random_tree, test_evo_tree_dict[0])
 # test_compute_ps(compute_ps, evo_tree_dict[0], evo_tree_dict)
+
+test_infer_evolutionary_tree("test_seqs.phylip", "test_output.txt", 5)
 # infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
-infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
+# infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
 # infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
 
 # for x in species:
