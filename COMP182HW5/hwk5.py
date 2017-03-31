@@ -4,6 +4,8 @@ from FullBiTree import * # vs import FullBiTree?
 import copy
 import random
 from comp182 import *
+import datetime as dt
+
 
 def read_phylip(filename):
     """
@@ -64,49 +66,68 @@ def write_newick(t):
     return "(" + left_str + ", " + right_str + ")"
 # end of function
 
-def compute_nni_neighborhood(t):
+def compute_nni_neighborhood(t): # new impl, March 30th
     """ Takes a full binary tree as input,
-    returns the set of all possible nearest-neighbor-trees of a given evolutionary tree.
-    :param t: - a FullBiTree
-    :return: A lsit of full binary trees encoding all possible trees whose structure can be obtained by
-    only 1 nearest-neighbor move on the input tree
-    """
+        returns the set of all possible nearest-neighbor-trees of a given evolutionary tree.
+        :param t: - a FullBiTree
+        :return: A lsit of full binary trees encoding all possible trees whose structure can be obtained by
+        only 1 nearest-neighbor move on the input tree
+        """
 
-    # 1. from the root r, traverse each node in the tree (BFS) and save the references in a list (for iterative traversal)
-    # 2. for each reference node, look at the left and the right children:
-    #    a. when a subtree rooted at a child node allows NNI operation
-        #    1. generate a new copy of the traversed part "new_tree"
-        #    2. mutate that subtree
-        #    3. attach the NNI-ed part(s) to "new_tree"
-        #    4. save this "new_tree" to result container
-    #    b. else: do nothing
-    # 3. after reaching a leaf, stop
-    # 4. After all nodes are travered, return result
+        # 1. from the root r, traverse each node in the tree (BFS) and save the references in a list (for iterative traversal)
+        # 2. for each reference node, look at the left and the right children:
+        #    a. when a subtree rooted at a child node allows NNI operation
+            #    1. generate a new copy of the traversed part "new_tree"
+            #    2. mutate that subtree
+            #    3. attach the NNI-ed part(s) to "new_tree"
+            #    4. save this "new_tree" to result container
+        #    b. else: do nothing
+        # 3. after reaching a leaf, stop
+        # 4. After all nodes are travered, return result
 
-    result = []
-    # validate input
-    if not t:
-        raise InputError("Input is empty!")
-        return result
+    #     # validate input
+    #     if not t:
+    #         raise InputError("Input is empty!")
+    #         return result
 
-    new_tree = copy.deepcopy(t)
-    result.append(new_tree)
+    nni_trees = set([]) #
 
     if t.is_leaf():
-        return result
+        # nni_trees.append(t) Question: should return empty set because a leaf doesn't have nni neighbors?????
+        return nni_trees
 
-    node_refs_list = []
-    traversal_printer(t, node_refs_list)
+    left_tree = t.get_left_child()
+    right_tree = t.get_right_child()
+    if not left_tree.is_leaf():
+        left_left_tree = t.get_left_child().get_left_child()
+        left_right_tree = t.get_left_child().get_right_child()
+        new_left_tree1 = FullBiTree(left_tree.get_name(), right_tree, left_right_tree)
+        new_left_tree2 = FullBiTree(left_tree.get_name(), left_left_tree, right_tree)
+        new_tree1 = FullBiTree(t.get_name(), new_left_tree1, left_left_tree)
+        new_tree2 = FullBiTree(t.get_name(), new_left_tree2, left_right_tree)
+        nni_trees.add(new_tree1)
+        nni_trees.add(new_tree2)
+    if not right_tree.is_leaf():
+        right_left_tree = t.get_right_child().get_left_child()
+        right_right_tree = t.get_right_child().get_right_child()
+        new_right_tree1 = FullBiTree(right_tree.get_name(), left_tree, right_right_tree)
+        new_right_tree2 = FullBiTree(right_tree.get_name(), right_left_tree, left_tree)
+        new_tree3 = FullBiTree(t.get_name(), right_left_tree, new_right_tree1)
+        new_tree4 = FullBiTree(t.get_name(), right_right_tree, new_right_tree2)
+        nni_trees.add(new_tree3)
+        nni_trees.add(new_tree4)
 
-    # for ref in list:
-    #     print "reference ", ref
-    # print len(list)
-    # do nni, make a copy and save the copy to result, undo nni, keep using this tree
-    while len(node_refs_list) > 0:
-        current = node_refs_list.pop()
-        nni_help(current, result, t)
+    left_sub_nnis = compute_nni_neighborhood(left_tree)
+    right_sub_nni = compute_nni_neighborhood(right_tree)
+    for tree in left_sub_nnis:
+        # nni_trees.append(FullBiTree(t.get_name(), tree, right_tree))
+        nni_trees.add(FullBiTree(t.get_name(), tree, right_tree))
 
-    return result
+    for tree in right_sub_nni:
+        # nni_trees.append(FullBiTree(t.get_name(), left_tree, tree))
+        nni_trees.add(FullBiTree(t.get_name(), left_tree, tree))
+
+    return nni_trees
 # end of function
 
 def random_tree(sequences):
@@ -175,36 +196,60 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     file_content = read_phylip(seqfile)
     m = file_content[0]
     sequences = file_content[1]
-    min = float('inf')
+    global_min = float('inf')
     scores_vs_steps = {}
     all_scores = []
     total_steps = 0
-    candidate_tree = FullBiTree("")
     for i in range(numrestarts):
+        min_a_tree= float('inf')
         a_tree = random_tree(sequences) # random_tree takes in a dictionary
         all_trees = compute_nni_neighborhood(a_tree)
-        for tree in all_trees:
-            total_steps += 1
+        while all_trees:
+            tree = all_trees.pop()
             score = compute_ps(tree, "seq", m)
             all_scores.append(score)
-            if score < min:
-                min = score
-                scores_vs_steps[total_steps] = min
-                candidate_tree = tree
-    newick_str = write_newick(candidate_tree)
+
+            if score < min_a_tree:
+                total_steps += 1
+                min_a_tree = score
+                scores_vs_steps[total_steps] = min_a_tree
+                all_trees = compute_nni_neighborhood(tree)
+
+        # for tree in all_trees: # if min hasn't changed after all trees in trees have been looked at, stop the i for loop
+        #     total_steps += 1
+        #     score = compute_ps(tree, "seq", m)
+        #     all_scores.append(score)
+        #     if score < min_a_tree:
+        #
+        #         min_a_tree = score
+        #         scores_vs_steps[total_steps] = min_a_tree
+        #         a_tree = tree
+        #         all_trees = compute_nni_neighborhood(a_tree)
+
+        if min_a_tree < global_min:
+            global_min = min_a_tree
+
+    newick_str = write_newick(a_tree)
     line = "input file: {0}, optimal parsimony score is {1}, took {2} steps\n" \
     "tree is {3}\n\n"\
-        .format(seqfile, min, len(scores_vs_steps), newick_str)
+        .format(seqfile, global_min, len(scores_vs_steps), newick_str)
     with open(outfile, 'a') as file:
         file.write(line)
     file.closed
     plot_lines([scores_vs_steps], seqfile, "Steps", "Score at each step")
+
     show()
-    return newick_str
+    return newick_str, scores_vs_steps
 
 
 ################################### Helper functions ################################
 def traversal_labeling(tree, candidate_key, sequence_key):
+    """ Takes in a tree, traverse it and print properties based on given keys candidate_key and sequence_key
+    :param tree: a tree of nodes, each node has at least two properties
+    :param candidate_key: name of one property, used for storing a list of sets of possible letters of DNA sequence
+    :param sequence_key: name of another property, used for storing DNA sequence
+    :return:
+    """
     tree.set_node_property(candidate_key, "")
     if tree.is_leaf():
         return
@@ -719,6 +764,7 @@ def test_nni_help(func, tree, result):
 def test_compute_nni_neighborhood(func, tree):
     print_test_head(func, tree)
     result = func(tree)
+    print len(result)
     for tree in result:
         print tree
 
@@ -827,7 +873,7 @@ test_nni_tree_simple = FullBiTree("u", x_tree, v_tree_simple)
 test_case_nni = test_nni_tree
 test_case_swap = test_nni_tree
 test_case_nni_able = test_newick_tree
-test_case_cnn = test_newick_tree
+test_case_compute_nni = test_newick_tree
 test_result = []
 
 test_evo_tree_dict = read_phylip("test_seqs2.phylip")
@@ -839,17 +885,27 @@ seq2 = random.choice(test_evo_tree_dict[1].values())
 # calling tests
 # test_make_new_node("test", sequence_key))
 # test_make_list_of_leaves(make_list_of_leaves, test_evo_tree_dict[1])
-
+# a_random_tree = random_tree(test_evo_tree_dict[1])
 # test_write_newick(write_newick, a_random_tree)
+# for i in range(15):
+#     print write_newick(random_tree(test_evo_tree_dict[1]))
 
 # test_attach_all_cand_seqs(attach_all_cand_seqs, a_random_tree, "seq", "candidate_seq", test_evo_tree_dict[0])
 # test_label_for_min_diff(label_for_min_diff, a_random_tree, test_evo_tree_dict[0])
 # test_compute_ps(compute_ps, evo_tree_dict[0], evo_tree_dict)
 
-test_infer_evolutionary_tree("test_seqs.phylip", "test_output.txt", 5)
-# infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
-# infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
-# infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)# species = list(evo_tree[1].keys())
+# test_infer_evolutionary_tree("test_seqs.phylip", "test_output.txt", 5)
+str = ""
+for i in range(3):
+    n1 = dt.datetime.now()
+    result = infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
+    n2 = dt.datetime.now()
+    x =(n2 - n1).microseconds/1000
+    # filename = "primate" + str(i)
+    # plot_lines(result[1], "primate", "Steps", "Score at each step", filename )
+    print x
+# infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)
+# infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)
 
 # for x in species:
 # 	print x
@@ -863,4 +919,4 @@ test_infer_evolutionary_tree("test_seqs.phylip", "test_output.txt", 5)
 # test_nni_help(nni_help, test_case_nni, test_result)
 # test_swap(swap, test_case_swap, test_case_swap, test_result)
 # test_nni_able(nni_able, test_case_nni_able)
-# test_compute_nni_neighborhood(compute_nni_neighborhood, test_case_cnn)
+# test_compute_nni_neighborhood(compute_nni_neighborhood, test_case_compute_nni)

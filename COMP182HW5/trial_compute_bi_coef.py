@@ -33,6 +33,11 @@ def compute_bi_coef(n, k):
 def test_computer_bi_coef(n, k):
 
     return compute_bi_coef(n, k);
+
+# n = 4, k = 3 4
+# n = 7, k = 5 21
+# n = 8, k = 3 56
+
 # end of function
 
 print "n = 4, k = 3", test_computer_bi_coef(4, 3)

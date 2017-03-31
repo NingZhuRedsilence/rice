@@ -5,6 +5,9 @@ class FullBiTree(object):
     Represents a full binary tree.
     """
 
+    def __repr__(self):
+        return str(self)
+
     def __init__(self, name, left_tree=None, right_tree=None):
         """
         Creates a full binary tree.
