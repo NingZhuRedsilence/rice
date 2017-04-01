@@ -1,42 +1,63 @@
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 797 steps
-tree is (Yoruba, (Berber, (Gorilla_gorilla_1, ((Georgian, (Pan_troglodytes_1, Neanderthal)), ((Pongo_pygmaeus_abelii_1, (Pan_paniscus_1, Hylobates_lar)), (Chinese, Pongo_pygmaeus_1))))))
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 12 steps
+tree is (((((Yoruba, Berber), Chinese), Neanderthal), ((((Hylobates_lar, (Pongo_pygmaeus_1, Pongo_pygmaeus_abelii_1)), Gorilla_gorilla_1), Pan_paniscus_1), Pan_troglodytes_1)), Georgian)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 816 steps
-tree is ((Pongo_pygmaeus_1, Yoruba), (Berber, ((Pan_troglodytes_1, (Neanderthal, Hylobates_lar)), ((Pan_paniscus_1, Georgian), (Pongo_pygmaeus_abelii_1, (Gorilla_gorilla_1, Chinese))))))
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 12 steps
+tree is (Pan_paniscus_1, ((Pan_troglodytes_1, (Georgian, (Neanderthal, (Chinese, (Berber, Yoruba))))), (Gorilla_gorilla_1, ((Pongo_pygmaeus_abelii_1, Pongo_pygmaeus_1), Hylobates_lar))))
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 877 steps
-tree is ((Georgian, Pongo_pygmaeus_abelii_1), (Gorilla_gorilla_1, ((Hylobates_lar, (Chinese, Yoruba)), (Pan_troglodytes_1, ((Pan_paniscus_1, Berber), (Neanderthal, Pongo_pygmaeus_1))))))
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 12 steps
+tree is (Hylobates_lar, ((Pongo_pygmaeus_abelii_1, Pongo_pygmaeus_1), (((Pan_troglodytes_1, ((((Berber, Yoruba), Chinese), Neanderthal), Georgian)), Pan_paniscus_1), Gorilla_gorilla_1)))
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 856 steps
-tree is (Gorilla_gorilla_1, ((Hylobates_lar, (Pongo_pygmaeus_1, Chinese)), ((Pan_troglodytes_1, Georgian), ((Pan_paniscus_1, Neanderthal), (Yoruba, (Berber, Pongo_pygmaeus_abelii_1))))))
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 13 steps
+tree is ((((Gorilla_gorilla_1, ((Pan_troglodytes_1, ((Neanderthal, ((Berber, Yoruba), Chinese)), Georgian)), Pan_paniscus_1)), Hylobates_lar), Pongo_pygmaeus_abelii_1), Pongo_pygmaeus_1)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 870 steps
-tree is ((Pan_paniscus_1, (Pan_troglodytes_1, Gorilla_gorilla_1)), ((Yoruba, Hylobates_lar), (Neanderthal, (Chinese, ((Berber, Georgian), (Pongo_pygmaeus_abelii_1, Pongo_pygmaeus_1))))))
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 6 steps
+tree is (((Scer, Spar), (((Scas, (Calb, Sklu)), Sbay), Skud)), Smik)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 761 steps
-tree is ((Hylobates_lar, Pan_paniscus_1), ((Pongo_pygmaeus_abelii_1, (Gorilla_gorilla_1, Pongo_pygmaeus_1)), ((Georgian, (Neanderthal, (Yoruba, Pan_troglodytes_1))), (Chinese, Berber))))
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 6 steps
+tree is (Spar, (Scer, (Smik, ((Skud, Sbay), (Scas, (Sklu, Calb))))))
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 775 steps
-tree is ((Pan_paniscus_1, Neanderthal), (Chinese, ((Georgian, Gorilla_gorilla_1), (Pan_troglodytes_1, (Berber, (Pongo_pygmaeus_1, (Pongo_pygmaeus_abelii_1, (Yoruba, Hylobates_lar))))))))
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 6 steps
+tree is (Sklu, ((Scas, ((((Scer, Spar), Smik), Skud), Sbay)), Calb))
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 835 steps
-tree is (Neanderthal, (Hylobates_lar, (Gorilla_gorilla_1, ((Pan_troglodytes_1, Berber), (Yoruba, ((Pan_paniscus_1, Georgian), (Pongo_pygmaeus_abelii_1, (Pongo_pygmaeus_1, Chinese))))))))
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 5 steps
+tree is (((Smik, ((Scas, (Sklu, Calb)), (Sbay, Skud))), Scer), Spar)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 875 steps
-tree is ((Berber, Neanderthal), ((Pan_troglodytes_1, (Georgian, (Pongo_pygmaeus_1, Pongo_pygmaeus_abelii_1))), ((Hylobates_lar, Gorilla_gorilla_1), (Pan_paniscus_1, (Chinese, Yoruba)))))
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 6 steps
+tree is ((((Skud, (Sbay, (Scas, (Sklu, Calb)))), Smik), Scer), Spar)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 886 steps
-tree is ((Pongo_pygmaeus_abelii_1, Chinese), ((Berber, (Georgian, Gorilla_gorilla_1)), ((Pan_troglodytes_1, Yoruba), (Hylobates_lar, (Pongo_pygmaeus_1, (Pan_paniscus_1, Neanderthal))))))
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 7 steps
+tree is (((Calb, Sklu), ((Skud, Sbay), (Smik, (Scer, Spar)))), Scas)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 761 steps
-tree is (Pan_troglodytes_1, ((Georgian, Gorilla_gorilla_1), (Pan_paniscus_1, (Pongo_pygmaeus_abelii_1, (Yoruba, ((Pongo_pygmaeus_1, (Hylobates_lar, Berber)), (Chinese, Neanderthal)))))))
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 6 steps
+tree is ((((Skud, ((Spar, Scer), Smik)), Sbay), (Sklu, Calb)), Scas)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 864 steps
-tree is (Georgian, (Pan_troglodytes_1, (Gorilla_gorilla_1, ((Berber, Pongo_pygmaeus_abelii_1), ((Chinese, Pongo_pygmaeus_1), (Pan_paniscus_1, (Yoruba, (Neanderthal, Hylobates_lar))))))))
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 6 steps
+tree is ((((Sbay, Skud), ((Sklu, Calb), Scas)), (Scer, Spar)), Smik)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 873 steps
-tree is (Georgian, (Pan_troglodytes_1, (Pongo_pygmaeus_abelii_1, (Hylobates_lar, ((Pongo_pygmaeus_1, (Gorilla_gorilla_1, (Berber, (Pan_paniscus_1, Yoruba)))), (Neanderthal, Chinese))))))
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 12 steps
+tree is (((((((Georgian, ((Chinese, (Berber, Yoruba)), Neanderthal)), Pan_troglodytes_1), Pan_paniscus_1), Gorilla_gorilla_1), Pongo_pygmaeus_1), Hylobates_lar), Pongo_pygmaeus_abelii_1)
 
-input file: primate_seqs.phylip, optimal parsimony score is 776, took 833 steps
-tree is (Georgian, (Pongo_pygmaeus_1, (Neanderthal, ((Gorilla_gorilla_1, (Berber, (Hylobates_lar, (Chinese, (Pan_paniscus_1, Yoruba))))), (Pongo_pygmaeus_abelii_1, Pan_troglodytes_1)))))
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 7 steps
+tree is (Smik, ((Skud, (Sbay, ((Calb, Sklu), Scas))), (Spar, Scer)))
+
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 6 steps
+tree is (((Sklu, Calb), ((Skud, Sbay), (Smik, (Spar, Scer)))), Scas)
+
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 12 steps
+tree is (Pongo_pygmaeus_abelii_1, (((Gorilla_gorilla_1, (((Georgian, (Neanderthal, ((Yoruba, Berber), Chinese))), Pan_troglodytes_1), Pan_paniscus_1)), Hylobates_lar), Pongo_pygmaeus_1))
+
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 6 steps
+tree is (Sbay, ((((Spar, Scer), Smik), Skud), (Scas, (Calb, Sklu))))
+
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 6 steps
+tree is (Skud, (Sbay, ((Scas, (Sklu, Calb)), ((Scer, Spar), Smik))))
+
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 13 steps
+tree is (Pan_troglodytes_1, ((Pan_paniscus_1, ((Hylobates_lar, (Pongo_pygmaeus_abelii_1, Pongo_pygmaeus_1)), Gorilla_gorilla_1)), (Georgian, ((Chinese, (Berber, Yoruba)), Neanderthal))))
+
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 6 steps
+tree is (Sklu, ((Scas, ((Skud, (Smik, (Spar, Scer))), Sbay)), Calb))
+
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 5 steps
+tree is (((Spar, Scer), ((Scas, (Calb, Sklu)), (Sbay, Skud))), Smik)
 

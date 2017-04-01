@@ -139,32 +139,23 @@ def random_tree(sequences):
     # currently assume to take a dictionary
     if not sequences:
         raise InputError("Input is empty!")
-        # return result
 
-    result = make_new_node("root")
     # get info of nodes from the dictionary in sequences
     taxa_seqs = sequences
     # initialized a dictionary to store FullBiTrees of each leaf in all leaves
     # each leaf is labeled with taxon, sequence
     leaves_to_use = make_list_of_leaves(taxa_seqs, "seq")
-    # Todo: sequence_key hard-coded
+    # Todo: sequence_key hard-coded. No solution
 
-    # base case n = 1
-    if len(leaves_to_use) == 1:
-        result = leaves_to_use[0]
-        return result
+    while len(leaves_to_use) > 1:
+        node1 = random.choice(leaves_to_use)
+        leaves_to_use.remove(node1)
+        node2 = random.choice(leaves_to_use) # if put "node2 = .. " before leaves.remove(node1), remove(node2) gives error
+        leaves_to_use.remove(node2)
+        new_tree = FullBiTree("dummy", node1, node2)
+        leaves_to_use.append(new_tree)
 
-    # inductive case n > 2
-    if len(leaves_to_use) >= 2:
-        node1 = random_node(leaves_to_use)
-        node2 = random_node(leaves_to_use)
-        result.set_children(node1, node2)
-        internal_nodes = [result]
-        while len(leaves_to_use) > 0:
-            new_node = random_node(leaves_to_use)
-            internal_nodes = random_insert(new_node, internal_nodes)
-
-    return result
+    return leaves_to_use[0]
 # end of function
 
 def compute_ps(tree, sequence_key, m):
@@ -177,8 +168,8 @@ def compute_ps(tree, sequence_key, m):
     """
     candidate_key = "candidate"
     traversal_labeling(tree, candidate_key, sequence_key)
-    # todo: ask: I add a property "candidate" to store Sv,i, but the prop_key cannot be guaranteed to be consistant
-    # with the input tree. Yet I don't know how to set that property on the way dow without risking
+    # todo: ask: how to turn on or off a recursive traversal depending on whether it's on its way up or down?
+    #  that property on the way dow without risking
     # erasing what's stored on the way up""
     attach_all_cand_seqs(tree, sequence_key, candidate_key, m)
     ps = label_for_min_diff(tree, sequence_key, candidate_key, m, 0)
@@ -200,22 +191,33 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     scores_vs_steps = {}
     all_scores = []
     total_steps = 0
+    global_candidate_tree = FullBiTree("dummy")
     for i in range(numrestarts):
-        min_a_tree= float('inf')
-        a_tree = random_tree(sequences) # random_tree takes in a dictionary
-        all_trees = compute_nni_neighborhood(a_tree)
+
+        local_candidate_tree = random_tree(sequences) # random_tree takes in a dictionary
+        #  03.31
+        # print "random start: ", a_tree
+        # print "in forloop, a random tree: ", a_tree # 03.31
+        local_min= compute_ps(local_candidate_tree, "seq", m)
+        all_trees = compute_nni_neighborhood(local_candidate_tree)
         while all_trees:
             tree = all_trees.pop()
+            # print "in while, a nni tree: ", tree  # 03.31
             score = compute_ps(tree, "seq", m)
             all_scores.append(score)
 
-            if score < min_a_tree:
+            if score < local_min:
                 total_steps += 1
-                min_a_tree = score
-                scores_vs_steps[total_steps] = min_a_tree
-                all_trees = compute_nni_neighborhood(tree)
+                # print "score before update: ", min_a_tree
+                local_min = score
+                scores_vs_steps[total_steps] = local_min
+                local_candidate_tree = tree # 03.31
+                # print "score after update: ", min_a_tree
+                # print candidate_tree
+                all_trees = compute_nni_neighborhood(local_candidate_tree)# 03.31
+                # print "in while, new candidate tree: ", candidate_tree
 
-        # for tree in all_trees: # if min hasn't changed after all trees in trees have been looked at, stop the i for loop
+            # for tree in all_trees: # if min hasn't changed after all trees in trees have been looked at, stop the i for loop
         #     total_steps += 1
         #     score = compute_ps(tree, "seq", m)
         #     all_scores.append(score)
@@ -226,20 +228,21 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
         #         a_tree = tree
         #         all_trees = compute_nni_neighborhood(a_tree)
 
-        if min_a_tree < global_min:
-            global_min = min_a_tree
+        if local_min < global_min:
+            global_min = local_min
+            global_candidate_tree = local_candidate_tree
 
-    newick_str = write_newick(a_tree)
-    line = "input file: {0}, optimal parsimony score is {1}, took {2} steps\n" \
+    newick_str = write_newick(global_candidate_tree)
+
+    line = "input file: {0}, optimal parsimony score is {1}, each start on average took {2} steps\n" \
     "tree is {3}\n\n"\
-        .format(seqfile, global_min, len(scores_vs_steps), newick_str)
+        .format(seqfile, global_min, len(scores_vs_steps)/50, newick_str)
     with open(outfile, 'a') as file:
         file.write(line)
     file.closed
     plot_lines([scores_vs_steps], seqfile, "Steps", "Score at each step")
-
     show()
-    return newick_str, scores_vs_steps
+    return newick_str
 
 
 ################################### Helper functions ################################
@@ -270,6 +273,8 @@ def label_for_min_diff(tree, sequence_key, candidate_key, m, accumulator, parent
     #       2.(if not leaves) own sequence and get hamming disctance from both children
     #   need: parent_seq_str for hamming distance and list of set parent_seq for generating sequence
 
+    # test 03.31
+    # print "before labeling: ", tree.get_name, "seq: ", tree.get_node_property(sequence_key)
     if tree.is_leaf():
         my_seq = tree.get_node_property(sequence_key)
         accumulator = accumulator + hamming(parent_seq_str, my_seq)
@@ -288,10 +293,14 @@ def label_for_min_diff(tree, sequence_key, candidate_key, m, accumulator, parent
     my_seq = tree.get_node_property(sequence_key)
     if parent_seq_str :
         accumulator = accumulator + hamming(parent_seq_str, my_seq)
+    # 03.31
+    # print "after labeling: ", tree.get_name, "seq: ", tree.get_node_property(sequence_key)
 
     left_hamming = label_for_min_diff(tree.get_left_child(), sequence_key, candidate_key, m, 0, my_seq, inferred_seq)
     right_hamming = label_for_min_diff(tree.get_right_child(), sequence_key, candidate_key, m, 0, my_seq, inferred_seq)
     accumulator = accumulator + left_hamming + right_hamming
+    # 03.31
+    # print "score at this level: ", accumulator
     return accumulator
 
 # end of function
@@ -363,6 +372,7 @@ def hamming(seq1, seq2):
 def make_list_of_leaves(taxa_seqs, sequence_key):
     list = []
     for taxon in taxa_seqs:
+        # print taxon
         leaf = make_new_node(taxon)
         leaf.set_node_property("taxon_key", taxon)
         leaf.set_node_property(sequence_key, taxa_seqs[taxon])
@@ -376,117 +386,21 @@ def random_node(leaves_to_use):
     return node
 # end of function
 
-def random_insert(new_node, internal_nodes):
-    internal_nodes_to_return = []
-    internal_node = random.choice(internal_nodes)
-    internal_nodes_to_return.append(internal_node)
-    internal_nodes.remove(internal_node)
-    left_child = internal_node.get_left_child()
-    right_child =  internal_node.get_right_child()
-    new_internal_node = make_new_node("dummy")
-
-    coin = random.randint(0,9)
-    if coin >= 5:
-        new_internal_node.set_children(new_node, right_child)
-        # set_children() returns nothing. so passing new_internal_node.set_children(x,y) in to function just gives None!
-        # print "after set children", new_internal_node
-        internal_node.set_children(left_child, new_internal_node)
-    else:
-        test = new_internal_node.set_children(new_node, left_child)
-        internal_node.set_children(right_child, new_internal_node)
-    internal_nodes_to_return.append(new_internal_node)
-
-    return internal_nodes_to_return
-# end of function
-
 def traversal_printer(tree, list_of_ref_to_nodes, print_mode=False, property_key=None):
     list_of_ref_to_nodes.append(tree)
-    if print_mode:
-        print tree.get_name()
+    str_to_print = ""
+    if print_mode and not tree.is_leaf():
+        str_to_print = str_to_print + ", " + tree.get_name()
         if property_key:
-            print tree.get_node_property(property_key)
+            str_to_print = str_to_print + ", " + tree.get_node_property(property_key)
+            print str_to_print
 
     if tree.is_leaf():
         return list_of_ref_to_nodes
 
     traversal_printer(tree.get_left_child(), list_of_ref_to_nodes, print_mode, property_key)
     traversal_printer(tree.get_right_child(), list_of_ref_to_nodes, print_mode, property_key)
-# end of function
 
-def nni_help(current, result, whole_tree):
-    """look at current node and its child(ren) and grandchildren,
-    if possible do nni on the child(ren) in place, make a copy and save the copy, then change the original tree back"""
-    if current.is_leaf():
-        return result
-    left_tree = current.get_left_child()
-    right_tree = current.get_right_child()
-
-    if not left_tree.is_leaf():
-        # orginal_left_tree = copy.deepcopy(left_tree)
-        left_left_grandchild = left_tree.get_left_child()
-        left_right_grandchild = left_tree.get_right_child()
-        # 1 swap
-        swap(left_tree, "left", right_tree, left_left_grandchild, left_right_grandchild, current, whole_tree, result)
-        # change current back to original structure
-        current.set_children(left_tree, right_tree)
-        # another swap
-        swap(left_tree, "left", right_tree, left_right_grandchild, left_left_grandchild, current, whole_tree, result)
-        # change current back to original structure
-        current.set_children(left_tree, right_tree)
-
-    if not right_tree.is_leaf():
-        # orginal_right_tree = copy.deepcopy(right_tree)
-        right_left_grandchild = right_tree.get_left_child()
-        right_right_grandchild = right_tree.get_right_child()
-        # 1 swap
-        swap(right_tree, "right", left_tree, right_left_grandchild, right_right_grandchild, current, whole_tree, result)
-        # change current back to original structure
-        current.set_children(left_tree, right_tree)
-
-        # another swap
-        swap(right_tree, "right", left_tree, right_right_grandchild, right_left_grandchild, current, whole_tree, result)
-        # change current back to original structure
-        current.set_children(left_tree, right_tree)
-# end of function
-
-def swap(child, label, child_to_grandchild, grandchild_stay, grandchild_to_child, parent, whole_tree, result):
-    """ make one swap such that "child_to_grandchild" becomes a grandchild of "parent"
-    (a child of "child"), save the mutated tree "whole_tree" to "result",
-    then change "child" back to original structure.
-    Note: the "parent" (hence the "whole") is changed back outside of this function, because the author wants to
-    reserve the left vs right structure, although the order doesn't matter in evolutionary tree.
-    """
-    # print "parent: ", parent
-    # print "child: ", child
-
-    child.set_children(child_to_grandchild, grandchild_stay)
-
-    if label == "left":
-        parent.set_children(child, grandchild_to_child)
-    else:
-        parent.set_children(grandchild_to_child, child)
-    new_tree = copy.deepcopy(whole_tree)
-    # print "in swap(): new tree: ", new_tree
-    result.append(new_tree)
-    child.set_children(grandchild_stay, grandchild_to_child)
-# end of function
-
-def nni_able(tree):
-    """Can a NNI move be performed around the one of the children of the current node:
-    1. it's not a leaf
-    2. it has a sibling
-    """
-    label = False
-    if not tree.get_left_child().is_leaf():
-        print "child {0} is nni-able.".format(tree.get_left_child().get_name())
-        label = True
-    if not tree.get_right_child().is_leaf():
-        print "child {0} is nni-able.".format(tree.get_right_child().get_name())
-        label = True
-    else:
-        print "child {0} is NOT nni-able.".format(tree.get_left_child().get_name())
-
-    return label
 # end of function
 
 ################################  testing functions  ##################################
@@ -507,10 +421,10 @@ def test_infer_evolutionary_tree(seqfile, outfile, numrestarts):
     # (Chinese, (Georgian, (Pongo_pygmaeus_1, (Neanderthal, Berber))))
 # end of function
 
-def test_compute_ps(func, m, evo_tree_dict):
-    print m, evo_tree_dict
+def test_compute_ps(func, sequences, m):
+    print m, sequences
     seq_key = "seq"
-    a_random_tree = random_tree(evo_tree_dict)
+    a_random_tree = random_tree(sequences)
     print "parsimony score: ", func(a_random_tree, seq_key, m)
 # end of function
 
@@ -671,95 +585,6 @@ def test_make_list_of_leaves(func, sequences, sequence_key):
     # seq:  test0
 # end of functoin
 
-def test_randon_insert(func, sequences):
-    #
-    print_test_head(func, sequences)
-# end of function
-
-def test_nni_able(func, tree):
-    print_test_head(func, tree)
-    func(tree)
-
-    # Input:  u(w(a, b), v(x, y))
-    # Expected output:
-    # child w is nni - able.
-    # child v is nni - able.
-
-    # Input:  u1(u2(A, u3(B, C)), u4(D, E))
-    # Expected output:
-    # child u2 is nni-able.
-    # child u4 is nni-able.
-# end of function
-
-def test_swap(func, current, tree, result):
-    print_test_head(func, tree)
-    print "Input tree before: ", tree
-    if current.is_leaf():
-        return result
-    left_tree = current.get_left_child()
-    right_tree = current.get_right_child()
-
-    if not left_tree.is_leaf():
-        # orginal_left_tree = copy.deepcopy(left_tree)
-        left_left_grandchild = left_tree.get_left_child()
-        left_right_grandchild = left_tree.get_right_child()
-        # 1 swap
-        func(left_tree, "left", right_tree, left_left_grandchild, left_right_grandchild, current, tree, result)
-        current.set_children(left_tree, right_tree)
-        print "New tree in result: ", result[0]
-        print "Input tree after: ", tree
-
-        # Input1: test_nni_tree = u(w(a, b), v(x, y))
-        # expected output:
-        # Input tree before:  u(w(a, b), v(x, y))
-        # New tree in result:  u(w(v(x, y), a), b)
-        # Input tree after:  u(w(a, b), v(x, y))
-
-
-        # Input2: test_newick_tree = u1(u2(A, u3(B, C)), u4(D, E))
-        # expected output (result list):
-        # Input tree before:  u1(u2(A, u3(B, C)), u4(D, E))
-        # New tree in result:  u1(u2(u4(D, E), A), u3(B, C))
-        # Input tree after:  u1(u2(A, u3(B, C)), u4(D, E))
-# end of function
-
-def test_nni_help(func, tree, result):
-    print_test_head(func, tree)
-    new_tree = copy.deepcopy(tree)
-
-    result.append(new_tree)
-    list = []
-    traversal_printer(tree, list)
-
-    # for ref in list:
-    #     print "reference ", ref
-    # print len(list)
-    # do nni, make a copy and save the copy to result, undo nni, keep using this tree
-    while len(list) > 0:
-        current = list.pop()
-        func(current, result, tree)
-
-    for tree in result:
-        print "new tree ", tree
-    # Input1: test_nni_tree = u(w(a, b), v(x, y))
-    # expected output (result list):
-    # new tree  u(w(a, b), v(x, y))
-    # new tree  u(w(v(x, y), a), b)
-    # new tree  u(w(v(x, y), b), a)
-    # new tree  u(y, v(w(b, a), x))
-    # new tree  u(x, v(w(b, a), y))
-
-    # Input2: test_newick_tree = u1(u2(A, u3(B, C)), u4(D, E))
-    # expected output (result list):
-    # new tree  u1(u2(A, u3(B, C)), u4(D, E))
-    # new tree  u1(u2(C, u3(A, B)), u4(D, E))
-    # new tree  u1(u2(B, u3(A, C)), u4(D, E))
-    # new tree  u1(u2(u4(D, E), A), u3(C, B))
-    # new tree  u1(u2(u4(D, E), u3(C, B)), A)
-    # new tree  u1(E, u4(u2(u3(C, B), A), D))
-    # new tree  u1(D, u4(u2(u3(C, B), A), E))
-# end of function
-
 # test compute_nni_neighborhood
 def test_compute_nni_neighborhood(func, tree):
     print_test_head(func, tree)
@@ -780,13 +605,12 @@ def test_compute_nni_neighborhood(func, tree):
     # Testing  compute_nni_neighborhood
     # Input:  u1(u2(A, u3(B, C)), u4(D, E))
     # Expected output:
-    # u1(u2(A, u3(B, C)), u4(D, E))
-    # u1(u2(C, u3(A, B)), u4(D, E))
+    # u1(u2(C, u3(B, A)), u4(D, E))
+    # u1(u2(u4(D, E), u3(B, C)), A)
+    # u1(u2(A, u4(D, E)), u3(B, C))
+    # u1(E, u4(D, u2(A, u3(B, C))))
     # u1(u2(B, u3(A, C)), u4(D, E))
-    # u1(u2(u4(D, E), A), u3(C, B))
-    # u1(u2(u4(D, E), u3(C, B)), A)
-    # u1(E, u4(u2(u3(C, B), A), D))
-    # u1(D, u4(u2(u3(C, B), A), E))
+    # u1(D, u4(u2(A, u3(B, C)), E))
 # end of function
 
 def print_test_head(func, input_value1, input_value2=None):
@@ -871,15 +695,13 @@ test_nni_tree = FullBiTree("u", x_tree, v_tree)
 test_nni_tree_simple = FullBiTree("u", x_tree, v_tree_simple)
 
 test_case_nni = test_nni_tree
-test_case_swap = test_nni_tree
-test_case_nni_able = test_newick_tree
 test_case_compute_nni = test_newick_tree
 test_result = []
 
-test_evo_tree_dict = read_phylip("test_seqs2.phylip")
-evo_tree_dict = read_phylip("primate_seqs.phylip")
-seq1 = random.choice(test_evo_tree_dict[1].values())
-seq2 = random.choice(test_evo_tree_dict[1].values())
+test_evo_tree_dict = read_phylip("test_actg.phylip")
+# evo_tree_dict = read_phylip("primate_seqs.phylip")
+# seq1 = random.choice(test_evo_tree_dict[1].values())
+# seq2 = random.choice(test_evo_tree_dict[1].values())
 # print test_hamming(hamming, seq2, seq1)
 
 # calling tests
@@ -887,36 +709,34 @@ seq2 = random.choice(test_evo_tree_dict[1].values())
 # test_make_list_of_leaves(make_list_of_leaves, test_evo_tree_dict[1])
 # a_random_tree = random_tree(test_evo_tree_dict[1])
 # test_write_newick(write_newick, a_random_tree)
-# for i in range(15):
-#     print write_newick(random_tree(test_evo_tree_dict[1]))
 
 # test_attach_all_cand_seqs(attach_all_cand_seqs, a_random_tree, "seq", "candidate_seq", test_evo_tree_dict[0])
 # test_label_for_min_diff(label_for_min_diff, a_random_tree, test_evo_tree_dict[0])
-# test_compute_ps(compute_ps, evo_tree_dict[0], evo_tree_dict)
+# test_compute_ps(compute_ps, test_evo_tree_dict[1], test_evo_tree_dict[0])
 
-# test_infer_evolutionary_tree("test_seqs.phylip", "test_output.txt", 5)
-str = ""
 for i in range(3):
+    print i, "th run: "
     n1 = dt.datetime.now()
-    result = infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
+    infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
+    infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)
     n2 = dt.datetime.now()
-    x =(n2 - n1).microseconds/1000
-    # filename = "primate" + str(i)
-    # plot_lines(result[1], "primate", "Steps", "Score at each step", filename )
+    x =(n2 - n1).seconds
     print x
+    infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)
+    n3 = dt.datetime.now()
+    y =(n3 - n2).seconds
+    print y
+    # a_tree = random_tree(test_evo_tree_dict[1])
+    # print i, ": ", write_newick(a_tree)
+
+
 # infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)
 # infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)
+# infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
 
 # for x in species:
 # 	print x
 # print "random ", random.choice(species)
 
-# result = compute_nni_neighborhood(test_nni_tree_simple)
-# for tree in result:
-# 	test_write_newick(write_newick, tree)
-
 # test_write_newick(write_newick, test_nni_tree)
-# test_nni_help(nni_help, test_case_nni, test_result)
-# test_swap(swap, test_case_swap, test_case_swap, test_result)
-# test_nni_able(nni_able, test_case_nni_able)
 # test_compute_nni_neighborhood(compute_nni_neighborhood, test_case_compute_nni)
