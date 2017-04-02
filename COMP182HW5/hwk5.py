@@ -142,8 +142,8 @@ def random_tree(sequences):
 
     # get info of nodes from the dictionary in sequences
     taxa_seqs = sequences
-    # initialized a dictionary to store FullBiTrees of each leaf in all leaves
-    # each leaf is labeled with taxon, sequence
+    # for each entry in the sequence dictionary, make a 1-node full binary tree labeled with the taxon and sequence in that entry
+    # store the node in a list for later usage
     leaves_to_use = make_list_of_leaves(taxa_seqs, "seq")
     # Todo: sequence_key hard-coded. No solution
 
@@ -193,40 +193,36 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     total_steps = 0
     global_candidate_tree = FullBiTree("dummy")
     for i in range(numrestarts):
-
         local_candidate_tree = random_tree(sequences) # random_tree takes in a dictionary
         #  03.31
         # print "random start: ", a_tree
         # print "in forloop, a random tree: ", a_tree # 03.31
-        local_min= compute_ps(local_candidate_tree, "seq", m)
+        local_min = compute_ps(local_candidate_tree, "seq", m)
         all_trees = compute_nni_neighborhood(local_candidate_tree)
         while all_trees:
             tree = all_trees.pop()
+            temp_min = 0
+            temp_candidate_tree = tree
             # print "in while, a nni tree: ", tree  # 03.31
             score = compute_ps(tree, "seq", m)
             all_scores.append(score)
 
             if score < local_min:
-                total_steps += 1
+                # total_steps += 1
                 # print "score before update: ", min_a_tree
-                local_min = score
-                scores_vs_steps[total_steps] = local_min
-                local_candidate_tree = tree # 03.31
+                temp_min = score
+                scores_vs_steps[total_steps] = temp_min
+                temp_candidate_tree = tree # 03.31
                 # print "score after update: ", min_a_tree
                 # print candidate_tree
-                all_trees = compute_nni_neighborhood(local_candidate_tree)# 03.31
-                # print "in while, new candidate tree: ", candidate_tree
 
-            # for tree in all_trees: # if min hasn't changed after all trees in trees have been looked at, stop the i for loop
-        #     total_steps += 1
-        #     score = compute_ps(tree, "seq", m)
-        #     all_scores.append(score)
-        #     if score < min_a_tree:
-        #
-        #         min_a_tree = score
-        #         scores_vs_steps[total_steps] = min_a_tree
-        #         a_tree = tree
-        #         all_trees = compute_nni_neighborhood(a_tree)
+            if not all_trees:
+                if temp_min < local_min:
+                    local_min = temp_min
+                    local_candidate_tree = temp_candidate_tree
+                    total_steps += 1
+                    all_trees = compute_nni_neighborhood(local_candidate_tree)# 03.31
+                # print "in while, new candidate tree: ", candidate_tree
 
         if local_min < global_min:
             global_min = local_min
@@ -236,7 +232,7 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
 
     line = "input file: {0}, optimal parsimony score is {1}, each start on average took {2} steps\n" \
     "tree is {3}\n\n"\
-        .format(seqfile, global_min, len(scores_vs_steps)/50, newick_str)
+        .format(seqfile, global_min, len(scores_vs_steps)/numrestarts, newick_str)
     with open(outfile, 'a') as file:
         file.write(line)
     file.closed
@@ -328,13 +324,13 @@ def attach_all_cand_seqs(tree, seq_key, candidate_key, m):
     for inferring sequence of the current node, and "m" the length of sequence.
     Modify (in place) each node candidate_key property with a list of sets S_{v,i} """
 
-    s_tree = []
+    current_candidate_seq = []
     if tree.is_leaf():
         # change sequence from list of chars to list of sets? Yes, document said so
         seq = tree.get_node_property(seq_key)
         for i in range(0, m):
-            s_tree.append(set([seq[i]])) # Caution about property seq vs candidate_seq, string vs a list of set
-        tree.set_node_property(candidate_key, s_tree)
+            current_candidate_seq.append(set([seq[i]])) # Caution about property seq vs candidate_seq, string vs a list of set
+        tree.set_node_property(candidate_key, current_candidate_seq)
         return tree.get_node_property(candidate_key)
 
     else: # internal nodes
@@ -349,10 +345,10 @@ def attach_all_cand_seqs(tree, seq_key, candidate_key, m):
             ith_elem_y = s_y[i]
             intersect = ith_elem_x & ith_elem_y # operator version requires both sides to be sets, more robust
             if intersect:
-                s_tree.append(intersect)
+                current_candidate_seq.append(intersect)
             else:
-                s_tree.append(ith_elem_x | ith_elem_y)
-        tree.set_node_property(candidate_key, s_tree) # not good code design?
+                current_candidate_seq.append(ith_elem_x | ith_elem_y)
+        tree.set_node_property(candidate_key, current_candidate_seq) # not good code design?
         return tree.get_node_property(candidate_key)
 # end of function
 
@@ -714,7 +710,7 @@ test_evo_tree_dict = read_phylip("test_actg.phylip")
 # test_label_for_min_diff(label_for_min_diff, a_random_tree, test_evo_tree_dict[0])
 # test_compute_ps(compute_ps, test_evo_tree_dict[1], test_evo_tree_dict[0])
 
-for i in range(3):
+for i in range(1):
     print i, "th run: "
     n1 = dt.datetime.now()
     infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)

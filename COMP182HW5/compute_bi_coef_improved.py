@@ -14,7 +14,7 @@ def compute_bi_coef_improved(n, k):
 
     # recursive case
     for i in range(2, n + 1):
-        for j in range(0, k + 2):
+        for j in range(0, k + 1):
             if j == 0:
                 row_i.append(1)
 
@@ -27,21 +27,17 @@ def compute_bi_coef_improved(n, k):
                 b = row_i_minus_1[j]
                 row_i.append(a + b)
 
-                if j == k + 1:
-                    break
-
             j += 1
 
         del row_i_minus_1[:]
         for elem in row_i:
             row_i_minus_1.append(elem)  # todo ask AT: the right way to move values between objects in Python?
-        # what is this situation? need to clean the temporary storage if I'm using append
         del row_i[:]
-
-        if i == n:
-            return row_i_minus_1[k]
         i += 1
-    # return row_i[k]
+
+    return row_i_minus_1[k]
+
+        # return row_i[k]
 # end of function
 
 def test_computer_bi_coef(n, k):

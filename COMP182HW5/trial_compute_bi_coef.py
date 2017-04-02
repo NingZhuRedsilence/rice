@@ -14,7 +14,7 @@ def compute_bi_coef(n, k):
         c[0].append(1)
         j += 1
 
-    # calculate dp cells c[i][j] = c[i-1][j-1] + c[i][j-1], i is in [1, k], j is in [1, n]
+    # calculate dp cells c[i][j] = c[i-1][j-1] + c[i][j-1], i is in [1, k], j is in [0, n]
     for i in range(1, k + 1):
         for j in range(0, n + 1):
             if i > j:
