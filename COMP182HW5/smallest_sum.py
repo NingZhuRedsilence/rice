@@ -16,7 +16,7 @@ def smallest_descent_sum(matrix_triangle):
     # recursive case
     # todo: "better" (less error-prone) way to fill up the matrix?
     for i in range(1, size):
-        for j in range(1, i + size):
+        for j in range(1, size + 2):
             if j >= (i + 2):
                 sums[i].append(float("inf"))
             else:

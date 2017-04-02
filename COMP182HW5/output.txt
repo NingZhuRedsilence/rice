@@ -76,3 +76,12 @@ tree is (Scas, ((Calb, Sklu), ((Skud, ((Spar, Scer), Smik)), Sbay)))
 input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 6 steps
 tree is ((((Sbay, Skud), ((Sklu, Calb), Scas)), (Spar, Scer)), Smik)
 
+input file: primate_seqs.phylip, optimal parsimony score is 776, each start on average took 12 steps
+tree is ((Chinese, ((((Pan_paniscus_1, (Gorilla_gorilla_1, (Hylobates_lar, (Pongo_pygmaeus_abelii_1, Pongo_pygmaeus_1)))), Pan_troglodytes_1), Georgian), Neanderthal)), (Berber, Yoruba))
+
+input file: yeast_gene1_seqs.phylip, optimal parsimony score is 1648, each start on average took 6 steps
+tree is (((Skud, (((Calb, Sklu), Scas), Sbay)), (Scer, Spar)), Smik)
+
+input file: yeast_gene2_seqs.phylip, optimal parsimony score is 684, each start on average took 6 steps
+tree is (Sbay, (Skud, ((Scas, (Sklu, Calb)), (Smik, (Spar, Scer)))))
+

@@ -40,6 +40,7 @@ def test_computer_bi_coef(n, k):
 
 # end of function
 
+
 print "n = 4, k = 3", test_computer_bi_coef(4, 3)
 print "n = 7, k = 5", test_computer_bi_coef(7, 5)
 print "n = 8, k = 3", test_computer_bi_coef(8, 3)

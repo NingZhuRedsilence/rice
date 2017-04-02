@@ -70,27 +70,16 @@ def compute_nni_neighborhood(t): # new impl, March 30th
     """ Takes a full binary tree as input,
         returns the set of all possible nearest-neighbor-trees of a given evolutionary tree.
         :param t: - a FullBiTree
-        :return: A lsit of full binary trees encoding all possible trees whose structure can be obtained by
-        only 1 nearest-neighbor move on the input tree
+        :return: A set of full binary trees encoding all possible trees that can be obtained by making only
+        1 nearest-neighbor move on the input tree
         """
 
-        # 1. from the root r, traverse each node in the tree (BFS) and save the references in a list (for iterative traversal)
-        # 2. for each reference node, look at the left and the right children:
-        #    a. when a subtree rooted at a child node allows NNI operation
-            #    1. generate a new copy of the traversed part "new_tree"
-            #    2. mutate that subtree
-            #    3. attach the NNI-ed part(s) to "new_tree"
-            #    4. save this "new_tree" to result container
-        #    b. else: do nothing
-        # 3. after reaching a leaf, stop
-        # 4. After all nodes are travered, return result
-
-    #     # validate input
-    #     if not t:
-    #         raise InputError("Input is empty!")
-    #         return result
-
     nni_trees = set([]) #
+
+    # validate input
+    if not t:
+        raise InputError("Input is empty!")
+        return nni_trees
 
     if t.is_leaf():
         # nni_trees.append(t) Question: should return empty set because a leaf doesn't have nni neighbors?????
@@ -118,12 +107,12 @@ def compute_nni_neighborhood(t): # new impl, March 30th
         nni_trees.add(new_tree4)
 
     left_sub_nnis = compute_nni_neighborhood(left_tree)
-    right_sub_nni = compute_nni_neighborhood(right_tree)
+    right_sub_nnis = compute_nni_neighborhood(right_tree)
     for tree in left_sub_nnis:
         # nni_trees.append(FullBiTree(t.get_name(), tree, right_tree))
         nni_trees.add(FullBiTree(t.get_name(), tree, right_tree))
 
-    for tree in right_sub_nni:
+    for tree in right_sub_nnis:
         # nni_trees.append(FullBiTree(t.get_name(), left_tree, tree))
         nni_trees.add(FullBiTree(t.get_name(), left_tree, tree))
 
@@ -201,27 +190,26 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
         all_trees = compute_nni_neighborhood(local_candidate_tree)
         while all_trees:
             tree = all_trees.pop()
-            temp_min = 0
-            temp_candidate_tree = tree
-            # print "in while, a nni tree: ", tree  # 03.31
             score = compute_ps(tree, "seq", m)
             all_scores.append(score)
-
             if score < local_min:
                 # total_steps += 1
                 # print "score before update: ", min_a_tree
-                temp_min = score
-                scores_vs_steps[total_steps] = temp_min
-                temp_candidate_tree = tree # 03.31
+                local_min = score
+                local_candidate_tree = tree # 03.31
+                all_trees = compute_nni_neighborhood(local_candidate_tree)
+                total_steps += 1
+                scores_vs_steps[total_steps] = local_min
                 # print "score after update: ", min_a_tree
                 # print candidate_tree
 
-            if not all_trees:
-                if temp_min < local_min:
-                    local_min = temp_min
-                    local_candidate_tree = temp_candidate_tree
-                    total_steps += 1
-                    all_trees = compute_nni_neighborhood(local_candidate_tree)# 03.31
+            # if not all_trees:
+            #     if temp_min < local_min:
+            #         local_min = temp_min
+            #         local_candidate_tree = temp_candidate_tree
+            #         total_steps += 1
+            #         scores_vs_steps[total_steps] = local_min
+            #         all_trees = compute_nni_neighborhood(local_candidate_tree)# 03.31
                 # print "in while, new candidate tree: ", candidate_tree
 
         if local_min < global_min:
@@ -236,8 +224,8 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     with open(outfile, 'a') as file:
         file.write(line)
     file.closed
-    plot_lines([scores_vs_steps], seqfile, "Steps", "Score at each step")
-    show()
+    # plot_lines([scores_vs_steps], seqfile, "Steps", "Score at each step")
+    # show()
     return newick_str
 
 
@@ -713,7 +701,7 @@ test_evo_tree_dict = read_phylip("test_actg.phylip")
 for i in range(1):
     print i, "th run: "
     n1 = dt.datetime.now()
-    infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
+    # infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
     infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)
     n2 = dt.datetime.now()
     x =(n2 - n1).seconds
