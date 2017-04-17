@@ -1,11 +1,379 @@
 #################   PASTE PROVIDED CODE HERE AS NEEDED   #################
-import abc
-from FullBiTree import * # vs import FullBiTree?
-import copy
 import random
-from comp182 import *
-import datetime as dt
 
+import abc
+
+
+class FullBiTree(object):
+    """
+    Represents a full binary tree.
+    """
+
+    # def __repr__(self):
+    #     return str(self)
+
+    def __init__(self, name, left_tree=None, right_tree=None):
+        """
+        Creates a full binary tree.
+
+        This constructor must be called with exactly one or three parameters.
+        That is, a name alone or a name and both a left and right child.
+
+        Arguments:
+        name - an identifier for the root node of the tree.
+        left_tree - the FullBiTree left substree if the tree's root has children. (optional)
+        right_tree - the FullBiTree left substree if the tree's root has children. (optional)
+        """
+
+        self.__name = name
+        self.__node_props = {}
+        if left_tree == None and right_tree == None:
+            self.__set_state(TreeNodeStateLeaf())
+        elif left_tree != None and right_tree != None:
+            self.__set_state(TreeNodeStateInternal(left_tree, right_tree))
+        else:
+            raise Exception('FullBiTree roots must have 0 or 2 children.')
+
+    def get_name(self):
+        """
+        Gets the name of the root node of the tree.
+
+        Returns:
+        The name of the root node.
+        """
+        return self.__name
+
+    def get_left_child(self):
+        """
+        Gets the left subtree of the tree's root if it has children or generates an exception if the root has no children.
+
+        Returns:
+        The left subtree of the tree.
+        """
+        return self.__get_state().get_left_child()
+
+    def get_right_child(self):
+        """
+        Gets the right subtree of the tree's root if it has children or generates an exception if the root has no children.
+
+        Returns:
+        The left subtree of the tree.
+        """
+        return self.__get_state().get_right_child()
+
+    def set_children(self, left_tree, right_tree):
+        """
+        Updates the tree's root to contain new children.
+
+        Arguments:
+        left_tree - the new left subtree for the tree.
+        right_tree - the new right subtree for the tree.
+        """
+        self.__set_state(TreeNodeStateInternal(left_tree, right_tree))
+
+    def remove_children(self):
+        """
+        Updates the tree's root to contain no children.
+
+        Arguments:
+        left_tree - the new left subtree for the tree.
+        right_tree - the new right subtree for the tree.
+        """
+        self.__set_state(TreeNodeStateLeaf())
+
+    def is_leaf(self):
+        """
+        Tests whether the tree's root has no children.
+
+        Returns:
+        True if the tree is only a single node, else false.
+        """
+        return self.__get_state().is_leaf()
+
+    def __set_state(self, new_state):
+        """
+        Sets the internal node/leaf node state for the node.
+
+        Arguments:
+        new_state - the new node state.
+        """
+        self.__node_state = new_state
+
+    def __get_state(self):
+        """
+        Gets the internal node/leaf node state for the node.
+
+        Returns:
+        The current node state.
+        """
+        return self.__node_state
+
+    def __str__(self):
+        " Contract from super. "
+        return self.__get_state().to_string(self)
+
+    def get_node_property(self, key):
+        """
+        Accesses a user specified property of the tree's root.
+
+        Arguments:
+        key - the property of the desired key value pair.
+
+        Returns:
+        The value of the given key for the tree's root.
+        """
+        return self.__node_props[key]
+
+    def set_node_property(self, key, value):
+        """
+        Defines a user specified property of the tree's root.
+
+        Arguments:
+        key - the key of the desired property.
+        value - the value of the desired property.
+        """
+        self.__node_props[key] = value
+
+    def get_left_edge_property(self, key):
+        """
+        Accesses a user specified property of the tree's left subtree edge.
+        Throws exception if the tree has no left subtree.
+
+        Arguments:
+        key - the property of the desired key value pair.
+
+        Returns:
+        The value of the given key for the tree's left subtree edge.
+        """
+        return self.__get_state().get_left_edge_property(key)
+
+    def set_left_edge_property(self, key, value):
+        """
+        Defines a user specified property of the tree's left subtree edge.
+        Throws exception if the tree has no left subtree.
+
+        Arguments:
+        key - the key of the desired property.
+        value - the value of the desired property.
+        """
+        self.__get_state().set_left_edge_property(key, value)
+
+    def get_right_edge_property(self, key):
+        """
+        Accesses a user specified property of the tree's right subtree edge.
+        Throws exception if the tree has no left subtree.
+
+        Arguments:
+        key - the property of the desired key value pair.
+
+        Returns:
+        The value of the given key for the tree's right subtree edge.
+        """
+        return self.__get_state().get_right_edge_property(key)
+
+    def set_right_edge_property(self, key, value):
+        """
+        Defines a user specified property of the tree's right subtree edge.
+        Throws exception if the tree has no left subtree.
+
+        Arguments:
+        key - the key of the desired property.
+        value - the value of the desired property.
+        """
+        self.__get_state().set_right_edge_property(key, value)
+
+
+class TreeNodeState(object):
+    """
+    Abstract class for defining all operations for a node state.
+    """
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def is_leaf(self):
+        """
+        Tests whether the node state represents a leaf.
+
+        Returns:
+        True if the node state represents a leaf, else false.
+        """
+        pass
+
+    @abc.abstractmethod
+    def to_string(self, owner):
+        """
+        Returns a prefix string representation of the whole tree rooted by the node state.
+
+        Returns:
+        A prefix string representation of the tree.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_left_child(self):
+        """
+        Returns the left child of this node if in the internal state, or generate exeption if in leaf state.
+
+        Returns:
+        The left subtree.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_right_child(self):
+        """
+        Returns the right child of this node if in the internal state, or generate exeption if in leaf state.
+
+        Returns:
+        The right subtree.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_left_edge_property(self, key):
+        """
+        Accesses a user specified property of the node state's left subtree edge.
+        Throws exception if the tree has no left subtree.
+
+        Arguments:
+        key - the property of the desired key value pair.
+
+        Returns:
+        The value of the given key for the tree's left subtree edge.
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_left_edge_property(self, key, value):
+        """
+        Accesses a user specified property of the node state's left subtree edge.
+        Throws exception if the node state has no left subtree.
+
+        Arguments:
+        key - the property of the desired key value pair.
+
+        Returns:
+        The value of the given key for the tree's right subtree edge.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_right_edge_property(self, key):
+        """
+        Accesses a user specified property of the node state's right subtree edge.
+        Throws exception if the tree has no right subtree.
+
+        Arguments:
+        key - the property of the desired key value pair.
+
+        Returns:
+        The value of the given key for the tree's right subtree edge.
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_right_edge_property(self, key, value):
+        """
+        Accesses a user specified property of the node state's right subtree edge.
+        Throws exception if the node state has no left subtree.
+
+        Arguments:
+        key - the property of the desired key value pair.
+
+        Returns:
+        The value of the given key for the tree's right subtree edge.
+        """
+        pass
+
+
+class TreeNodeStateLeaf(TreeNodeState):
+    """
+    TreeNodeState representing a leaf.
+    """
+
+    def is_leaf(self):
+        "Contract from super."
+        return True
+
+    def to_string(self, owner):
+        "Contract from super."
+        return str(owner.get_name())
+
+    def get_left_child(self):
+        "Contract from super."
+        raise Exception("A leaf does not have a left child.")
+
+    def get_right_child(self):
+        "Contract from super."
+        raise Exception("A leaf does not have a right child.")
+
+    def get_left_edge_property(self, key):
+        "Contract from super."
+        raise Exception("A leaf does not have a left edge.")
+
+    def set_left_edge_property(self, key, value):
+        "Contract from super."
+        raise Exception("A leaf does not have a left edge.")
+
+    def get_right_edge_property(self, key):
+        "Contract from super."
+        raise Exception("A leaf does not have a right edge.")
+
+    def set_right_edge_property(self, key, value):
+        "Contract from super."
+        raise Exception("A leaf does not have a right edge.")
+
+
+class TreeNodeStateInternal(TreeNodeState):
+    """
+    TreeNodeState for an internal node.
+    """
+
+    def __init__(self, left_tree, right_tree):
+        """
+        Creates a new TreeNodeState instance.
+
+        Arguments:
+        left_tree - The FullBiTree left subtree of this node.
+        right_tree - The FullBiTree right subtree of this node.
+        """
+        self.__left_tree = left_tree
+        self.__right_tree = right_tree
+        self.__left_edge_props = {}
+        self.__right_edge_props = {}
+
+    def is_leaf(self):
+        "Contract from super."
+        return False
+
+    def get_left_child(self):
+        "Contract from super."
+        return self.__left_tree;
+
+    def get_right_child(self):
+        "Contract from super."
+        return self.__right_tree
+
+    def get_left_edge_property(self, key):
+        "Contract from super."
+        return self.__left_edge_props[key]
+
+    def set_left_edge_property(self, key, value):
+        "Contract from super."
+        self.__left_edge_props[key] = value
+
+    def get_right_edge_property(self, key):
+        "Contract from super."
+        return self.__right_edge_props[key]
+
+    def set_right_edge_property(self, key, value):
+        "Contract from super."
+        self.__right_edge_props[key] = value
+
+    def to_string(self, owner):
+        "Contract from super."
+        return str(owner.get_name()) + '(' + str(self.get_left_child()) + ', ' + str(self.get_right_child()) + ')'
 
 def read_phylip(filename):
     """
@@ -68,7 +436,7 @@ def write_newick(t):
 
 def compute_nni_neighborhood(t): # new impl, March 30th
     """ Takes a full binary tree as input,
-        returns the set of all possible nearest-neighbor-trees of a given evolutionary tree.
+    returns the set of all possible nearest-neighbor-trees of a given evolutionary tree.
         :param t: - a FullBiTree
         :return: A set of full binary trees encoding all possible trees that can be obtained by making only
         1 nearest-neighbor move on the input tree
@@ -120,10 +488,9 @@ def compute_nni_neighborhood(t): # new impl, March 30th
 # end of function
 
 def random_tree(sequences):
-    """
-    todo
-    :param sequences:
-    :return:
+    """ Create a full binary tree whose every leaf is labeled by a taxon name and the DNA sequence associated with that taxon.
+    :param sequences: a dictionary that holds taxa as keys and corresponding DNA sequences as values.
+    :return: a full binary tree whose every leaf is labeled by a taxon name and the DNA sequence associated with that taxon.
     """
     # currently assume to take a dictionary
     if not sequences:
@@ -134,7 +501,6 @@ def random_tree(sequences):
     # for each entry in the sequence dictionary, make a 1-node full binary tree labeled with the taxon and sequence in that entry
     # store the node in a list for later usage
     leaves_to_use = make_list_of_leaves(taxa_seqs, "seq")
-    # Todo: sequence_key hard-coded. No solution
 
     while len(leaves_to_use) > 1:
         node1 = random.choice(leaves_to_use)
@@ -148,12 +514,12 @@ def random_tree(sequences):
 # end of function
 
 def compute_ps(tree, sequence_key, m):
-    """
-    todo
-    :param tree:
-    :param sequence_key:
-    :param m:
-    :return:
+    """ Takes as input a full binary tree whose every leaf is labeled by a taxon name and the DNA sequence
+    associated with that taxon, a sequence_key and an integer m, return an integer that is the parsimony score of the inferred tree
+    :param tree: a full binary tree whose every leaf is labeled by a taxon name and the DNA sequence associated with that taxon.
+    :param sequence_key: a string that is the key value of a node property that stores DNA sequence
+    :param m: the length of each DNA sequence associated with a node
+    :return: ps, parsimony score of the inferred tree.
     """
     candidate_key = "candidate"
     traversal_labeling(tree, candidate_key, sequence_key)
@@ -167,11 +533,14 @@ def compute_ps(tree, sequence_key, m):
 
 def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     """
-    todo
-    :param seqfile:
-    :param outfile:
-    :param numrestarts:
-    :return:
+    Takes in a file name that contains DNA sequences, another file name that will store output information, and an integer
+    signifying the number of random restarts;
+    Labels all internal nodes with inferred DNA sequences that minimizes differences between parent and child nodes
+    Returns a string that is the Newick string representation of the inferred evolutionary tree
+    :param seqfile:  the file name that contains a set of DNA sequences of length m, each mapped to a unique taxon,
+    :param outfile: a file name that will store any output
+    :param numrestarts: an integer, the number of random restarts
+    :return: a string that is the Newick string representation of the inferred evolutionary tree
     """
     file_content = read_phylip(seqfile)
     m = file_content[0]
@@ -183,34 +552,26 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     global_candidate_tree = FullBiTree("dummy")
     for i in range(numrestarts):
         local_candidate_tree = random_tree(sequences) # random_tree takes in a dictionary
-        #  03.31
-        # print "random start: ", a_tree
-        # print "in forloop, a random tree: ", a_tree # 03.31
         local_min = compute_ps(local_candidate_tree, "seq", m)
         all_trees = compute_nni_neighborhood(local_candidate_tree)
+        temp_min = float('inf')
+        temp_candidate_tree = FullBiTree("dummy")
         while all_trees:
             tree = all_trees.pop()
             score = compute_ps(tree, "seq", m)
             all_scores.append(score)
-            if score < local_min:
-                # total_steps += 1
-                # print "score before update: ", min_a_tree
-                local_min = score
-                local_candidate_tree = tree # 03.31
-                all_trees = compute_nni_neighborhood(local_candidate_tree)
-                total_steps += 1
-                scores_vs_steps[total_steps] = local_min
-                # print "score after update: ", min_a_tree
-                # print candidate_tree
 
-            # if not all_trees:
-            #     if temp_min < local_min:
-            #         local_min = temp_min
-            #         local_candidate_tree = temp_candidate_tree
-            #         total_steps += 1
-            #         scores_vs_steps[total_steps] = local_min
-            #         all_trees = compute_nni_neighborhood(local_candidate_tree)# 03.31
-                # print "in while, new candidate tree: ", candidate_tree
+            if score < temp_min:
+                temp_min = score
+                temp_candidate_tree = tree
+
+            if not all_trees:
+                if temp_min < local_min:
+                    local_min = temp_min
+                    local_candidate_tree = temp_candidate_tree
+                    total_steps += 1
+                    scores_vs_steps[total_steps] = local_min
+                    all_trees = compute_nni_neighborhood(local_candidate_tree)# 03.31
 
         if local_min < global_min:
             global_min = local_min
@@ -224,8 +585,7 @@ def infer_evolutionary_tree(seqfile, outfile, numrestarts):
     with open(outfile, 'a') as file:
         file.write(line)
     file.closed
-    # plot_lines([scores_vs_steps], seqfile, "Steps", "Score at each step")
-    # show()
+
     return newick_str
 
 
@@ -286,7 +646,6 @@ def label_for_min_diff(tree, sequence_key, candidate_key, m, accumulator, parent
     # 03.31
     # print "score at this level: ", accumulator
     return accumulator
-
 # end of function
 
 def generate_seq_label(seq_to_be_inferred, candidate_seq, m, parent_seq=None):
@@ -302,7 +661,6 @@ def generate_seq_label(seq_to_be_inferred, candidate_seq, m, parent_seq=None):
             # caused problem in join(): inferred_seq, cand_seq = list of lists of strings, vs list of sets like this set(["a","b","c"])
             seq_to_be_inferred.append(random.sample(candidate_seq[i], 1)[0])
     return "".join(seq_to_be_inferred)
-
 # end of function
 
 def attach_all_cand_seqs(tree, seq_key, candidate_key, m):
@@ -410,6 +768,10 @@ def test_compute_ps(func, sequences, m):
     seq_key = "seq"
     a_random_tree = random_tree(sequences)
     print "parsimony score: ", func(a_random_tree, seq_key, m)
+    # 2 {'CC': 'CC', 'AC': 'AC', 'CC1': 'CC', 'AT': 'AT'}
+    # parsimony score:  3
+    # 5 {'1': 'test1', '3': 'test3', '2': 'test2', '4': 'test4'}
+    # parsimony score:  3
 # end of function
 
 def test_make_new_node(name, sequence_key):
@@ -664,25 +1026,25 @@ def test_random_tree(func, sequences, sequence_key):
 ################################## calling tests ####################################
 
 # construct test cases
-tree0 = None
-tree1 = FullBiTree("u1", FullBiTree("A"), FullBiTree("B"))
-
-left_tree = FullBiTree("u2", FullBiTree("A"), FullBiTree("u3", FullBiTree("B"), FullBiTree("C")))
-right_tree = FullBiTree("u4", FullBiTree("D"), FullBiTree("E"))
-test_newick_tree = FullBiTree("u1", left_tree, right_tree)
-
-x_tree = FullBiTree("w", FullBiTree("a"), FullBiTree("b"))
-v_tree = FullBiTree("v", FullBiTree("x"), FullBiTree("y"))
-v_tree_simple = FullBiTree("v")
-
-test_nni_tree = FullBiTree("u", x_tree, v_tree)
-test_nni_tree_simple = FullBiTree("u", x_tree, v_tree_simple)
-
-test_case_nni = test_nni_tree
-test_case_compute_nni = test_newick_tree
-test_result = []
-
-test_evo_tree_dict = read_phylip("test_actg.phylip")
+# tree0 = None
+# tree1 = FullBiTree("u1", FullBiTree("A"), FullBiTree("B"))
+#
+# left_tree = FullBiTree("u2", FullBiTree("A"), FullBiTree("u3", FullBiTree("B"), FullBiTree("C")))
+# right_tree = FullBiTree("u4", FullBiTree("D"), FullBiTree("E"))
+# test_newick_tree = FullBiTree("u1", left_tree, right_tree)
+#
+# x_tree = FullBiTree("w", FullBiTree("a"), FullBiTree("b"))
+# v_tree = FullBiTree("v", FullBiTree("x"), FullBiTree("y"))
+# v_tree_simple = FullBiTree("v")
+#
+# test_nni_tree = FullBiTree("u", x_tree, v_tree)
+# test_nni_tree_simple = FullBiTree("u", x_tree, v_tree_simple)
+#
+# test_case_nni = test_nni_tree
+# test_case_compute_nni = test_newick_tree
+# test_result = []
+#
+# test_evo_tree_dict = read_phylip("test_seqs.phylip")
 # evo_tree_dict = read_phylip("primate_seqs.phylip")
 # seq1 = random.choice(test_evo_tree_dict[1].values())
 # seq2 = random.choice(test_evo_tree_dict[1].values())
@@ -698,18 +1060,10 @@ test_evo_tree_dict = read_phylip("test_actg.phylip")
 # test_label_for_min_diff(label_for_min_diff, a_random_tree, test_evo_tree_dict[0])
 # test_compute_ps(compute_ps, test_evo_tree_dict[1], test_evo_tree_dict[0])
 
-for i in range(1):
-    print i, "th run: "
-    n1 = dt.datetime.now()
-    # infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
-    infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)
-    n2 = dt.datetime.now()
-    x =(n2 - n1).seconds
-    print x
-    infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)
-    n3 = dt.datetime.now()
-    y =(n3 - n2).seconds
-    print y
+# for i in range(1):
+#     infer_evolutionary_tree("primate_seqs.phylip", "output.txt", 50)
+#     infer_evolutionary_tree("yeast_gene1_seqs.phylip", "output.txt", 50)
+#     infer_evolutionary_tree("yeast_gene2_seqs.phylip", "output.txt", 50)
     # a_tree = random_tree(test_evo_tree_dict[1])
     # print i, ": ", write_newick(a_tree)
 
