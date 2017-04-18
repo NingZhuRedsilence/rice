@@ -1,0 +1,10 @@
+The / DT
+can / NN
+can / MD
+run / verb
+. / .
+
+The / DT
+sun / NN
+rises / verb
+. / .
