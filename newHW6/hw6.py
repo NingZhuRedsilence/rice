@@ -34,6 +34,8 @@ def compute_counts(training_data, order) :
     count_tag12 = defaultdict(lambda: defaultdict(float))
     count_tag123 = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
     end = len(training_data)
+    list_of_sentences = partition_sentences(training_data)
+
     # fill base cases and inductive cases based on order
     for i in range(end):
         pair = training_data[i]
@@ -43,8 +45,7 @@ def compute_counts(training_data, order) :
             # if tag2 and word2:
             count_tag_word[tag2][word2] += 1
             count_tag[tag2] += 1
-                # add_to_dict_cell(count_tag_word, tag2, word2)
-                # add_to_dict_cell(count_tag, tag2)
+
             if i >= 1:
                 word1, tag1 = decompose_a_pair(training_data, i - 1)
                     # exclude sequence ". word", ". word word" and "word. word"?
@@ -184,12 +185,12 @@ def compute_lambdas(unique_tags, num_tokens, C1, C2, C3, order):
                         else:
                             alpha0 = float((C1[tag_i] - 1))/num_tokens
 
-                        if (C1[tag_i] - 1) == 0:
+                        if (C1[tag_i_1] - 1) == 0:
                             alpha1 = 0.0
                         else:
                             alpha1 = float((C2[tag_i_1][tag_i] - 1)) / (C1[tag_i_1] - 1)
 
-                        if (C2[tag_i_1][tag_i] - 1) == 0:
+                        if (C2[tag_i_2][tag_i_1] - 1) == 0:
                             alpha2 = 0.0
                         else:
                             alpha2 = float((C3[tag_i_2][tag_i_1][tag_i] - 1)) / (C2[tag_i_2][tag_i_1] - 1)
@@ -201,12 +202,12 @@ def compute_lambdas(unique_tags, num_tokens, C1, C2, C3, order):
                             lambdas[1] += C3[tag_i_2][tag_i_1][tag_i]
                         else:
                             lambdas[2] += C3[tag_i_2][tag_i_1][tag_i]
-                        # print "lambdas: ", lambdas
+    # print "lambdas: ", lambdas
     # sum_lambdas = reduce((lambda x, y: x + y), lambdas)
     sum_lambdas = lambdas[0] + lambdas[1] + lambdas[2]
     # result = list(map(lambda x: x/sum_lambdas, lambdas))
     result = [lambdas[0]/sum_lambdas, lambdas[1]/sum_lambdas, lambdas[2]/sum_lambdas]
-    # print result
+    print result
     return result
 # end of function
 
@@ -250,6 +251,7 @@ def bigram_viterbi(hmm, sentence):
     emission = hmm.emission_matrix
     init_distribution = hmm.initial_distribution
     transit_matrix = hmm.transition_matrix
+    all_states = emission.keys()
 
     # print "emission ", emission
     # print "initial distribution ", init_distribution
@@ -260,7 +262,7 @@ def bigram_viterbi(hmm, sentence):
 
     z_list = [None] * length
     # fill base cases
-    for state in emission:
+    for state in all_states:
         word = sentence[0]
         v_matrix[state][0] = log_wrapper(init_distribution[state]) + log_wrapper(emission[state][word])
         # print state, word, v_matrix[state][0]
@@ -268,34 +270,40 @@ def bigram_viterbi(hmm, sentence):
     # inductive cases
     for i in range(1, length):
 
-        for curr_state in emission:
+        for curr_state in all_states:
             max_prob = float("-inf")
+            arg_max = all_states[0]
             # loop through all states for the previous observation to find max(v*transition)
             for prior_state in emission:
                 temp_prob = v_matrix[prior_state][i-1] + log_wrapper(transit_matrix[prior_state][curr_state])
                 if temp_prob > max_prob:
                     max_prob = temp_prob
-                    bp_matrix[curr_state][i] = prior_state
+                    arg_max = prior_state
                     # print "bp, curr_state", bp_matrix[curr_state][i]
-                v_matrix[curr_state][i]= max_prob + log_wrapper(emission[curr_state][sentence[i]])
+            v_matrix[curr_state][i]= max_prob + log_wrapper(emission[curr_state][sentence[i]])
+            bp_matrix[curr_state][i] = arg_max
                 # print curr_state, prior_state, max_prob, v_matrix[curr_state][i], "bp: ", bp_matrix[curr_state][i]
 
     # get the last state for z_list
     max_prob = float("-inf")
+    arg_max_last = all_states[0]
     for last_state in emission:
         temp_prob = v_matrix[last_state][length-1]
         if temp_prob > max_prob:
             max_prob = temp_prob
-            z_list[length-1] = last_state
+            arg_max_last = last_state
+
+    z_list[length-1] = arg_max_last
         # print "bp[{0}][{1}] is {2}".format(curr_state, i, bp_matrix[curr_state][i])
 
     # print bp_matrix
     for i in range(length-2, -1, -1):
         z_list[i] = bp_matrix[z_list[i+1]][i+1]
-        # print "bp[{0}][{1}]".format(z_list[i+1], i+1, bp_matrix[z_list[i+1]][i+1])
-    # print len(bp_matrix)
-    # print length
-    return z_list
+
+    list_pairs = []
+    for i in range(length):
+        list_pairs.append((sentence[i], z_list[i]))
+    return list_pairs
 # end of function
 
 
@@ -304,110 +312,205 @@ def trigram_viterbi(hmm, sentence):
     if not sentence:
         return []
 
-    # print sentence
     # initialize variables
     emission = hmm.emission_matrix
     init_distribution = hmm.initial_distribution
     transit_matrix = hmm.transition_matrix
+    all_states = emission.keys()
 
     v_matrix = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
     bp_matrix = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
+    # v_matrix = {}
+    # bp_matrix = {}
     length = len(sentence)
 
-    z_list = [None] * length
-    # fill base cases, i = 1, initial 2 tags
-    for state0, state1_dict in init_distribution.items():
-        for state1 in state1_dict:
-            word0 = sentence[0]
-            word1 = sentence[1]
-            v_matrix[state0][state1][1] = log_wrapper(init_distribution[state0][state1])\
+    # base cases for v
+    word0 = sentence[0]
+    word1 = sentence[1]
+    for state0 in all_states:
+        for state1 in all_states:
+            # print state0, state1
+            if init_distribution[state0][state1] != 0 and emission[state0][word0] != 0 and emission[state1][word1] != 0:
+                v_matrix[state0][state1][1] = log_wrapper(init_distribution[state0][state1])\
                                           + log_wrapper(emission[state0][word0]) + log_wrapper(emission[state1][word1])
-            # print state1, word1, v_matrix[state0][state1][1]
-    # print v_matrix
-    # inductive cases
-    for i in range(2, length-1):
-        print "v ", v_matrix
-        for curr_state in emission:
-            # loop through all 2-state combinations for the previous 2 observations to find max(v*transition)
-            # todo: bp seems wrong
-            max_prob = float("-inf")
-            state_0 = None
-            state_1 = None
-            for prior_state_0, prior_state_1_dict in transit_matrix.items():
-                for prior_state_1 in prior_state_1_dict:
-                    if v_matrix[prior_state_0][prior_state_1][i-1] == 0:
-                        v_matrix[prior_state_0][prior_state_1][i-1] = float("-inf")
+            else:
+                v_matrix[state0][state1][1] = float('-inf')
+            # print "base case v: ", state0, state1, v_matrix[state0][state1][1]
 
-                    temp_prob = v_matrix[prior_state_0][prior_state_1][i-1]\
-                                + log_wrapper(transit_matrix[prior_state_0][prior_state_1][curr_state])
-                    # if temp_prob == 0:
-                        # print "v_matrix[{0}][{1}][{2}] is {3}".\
-                        #     format(prior_state_0, prior_state_1, i-1, v_matrix[prior_state_0][prior_state_1][i-1])
-                    if temp_prob > max_prob:
-                        # print "temp_prob and max_prob: ", temp_prob, max_prob
-                        max_prob = temp_prob
-                        state_0 = prior_state_0
-                        state_1 = prior_state_1
-                        # print prior_state_0, prior_state_1, curr_state, max_prob
-                        # print "bp[{0}][{1}]: {2}".format(curr_state, i, bp_matrix[curr_state][i])
-                        # print "bp, curr_state", bp_matrix[curr_state][i], curr_state
-                    # if prior_state_0 == "MD" and prior_state_1 == "verb":
-                    #     print "MD, verb ", v_matrix[prior_state_0][prior_state_1][i-1]
-            if state_0 and state_1 :
-                print "prior_state_0 ", state_0, ", prior_state_1", state_1
-                v_matrix[state_1][curr_state][i]= max_prob\
-                                         + log_wrapper(emission[curr_state][sentence[i]])
-                bp_matrix[state_1][curr_state][i] = state_0
-                    # print "bp[prior_state_1][curr_state][i] ", bp_matrix[prior_state_1][curr_state][i]
-                    # print prior_state_0, prior_state_1, curr_state, max_prob, v_matrix[curr_state][i], "bp: ", bp_matrix[curr_state][i]
+    for i in range(2, length):
+        for curr_state in all_states: # wrong result: curr_state; correct result: prior_state1, curr_state
+            for prior_state1 in all_states: # wrong result: prior_state0; correct result: curr_state, prior_state1
+                max_prob = float('-inf')
+                arg_max0 = prior_state1
+                for prior_state0 in all_states: # wrong result: prior_state1; correct result: prior_state0
+                    # arg_max1 = prior_state1
+                    if transit_matrix[prior_state0][prior_state1][curr_state] != 0:
+                        temp = v_matrix[prior_state0][prior_state1][i-1] + \
+                           log_wrapper(transit_matrix[prior_state0][prior_state1][curr_state])
+                    else:
+                        # print "should be -inf:"
+                        temp = float('-inf')
+                    if temp > max_prob:
+                        max_prob = temp
+                        arg_max0 = prior_state0
+                        # arg_max1 = prior_state1
+                        # print "arg_max ", arg_max0
+                if emission[curr_state][sentence[i]] != 0:
+                    v_matrix[prior_state1][curr_state][i] = max_prob + log_wrapper(emission[curr_state][sentence[i]])
+                else:
+                    v_matrix[prior_state1][curr_state][i] = float('-inf')
+                bp_matrix[prior_state1][curr_state][i] = arg_max0
+            # print "inductive v: ", prior_state1, curr_state, v_matrix[prior_state1][curr_state][i]
+            # print "inductive bp: ", prior_state1, curr_state, bp_matrix[prior_state1][curr_state][i]
 
-    # get the last state for z_list
-    # print v_matrix
-    for last_state in emission:
-        max_prob = float("-inf")
-        for prior_state_0, prior_state_1_dict in transit_matrix.items():
-            for prior_state_1 in prior_state_1_dict:
-            # print each_state, last_state
-                temp_prob = v_matrix[prior_state_1][last_state][length-1]
-                if temp_prob > max_prob:
-                    max_prob = temp_prob
-                    z_list[length-1] = last_state
-                    z_list[length-2] = prior_state_1
-                    # print "prior_state is {0}, last_state in if is {1}".format(prior_state_1, last_state)
+    max_prob = float('-inf')
+    arg_max_last = all_states[0]
+    arg_max_second_last = all_states[0]
+    # print "last_state0, last_state1 ", arg_max_second_last, arg_max_last
+    for prior_state1  in v_matrix:
+        for last_state in v_matrix:
+            if v_matrix[prior_state1][last_state][length - 1] != 0:
+                temp = v_matrix[prior_state1][last_state][length - 1]
+                # print "in if, temp = ", temp
+                if temp > max_prob:
+                    max_prob = temp
+                    arg_max_last = last_state
+                    arg_max_second_last = prior_state1
+            else:
+                v_matrix[prior_state1][last_state][length - 1] = float('-inf')
 
-    # print z_list
-    print bp_matrix
-    # print z_list
+                # print "max, last, sec last: ", max_prob, arg_max_last, arg_max_second_last
+
+    # for state0 in v_matrix:
+    #     for state1 in v_matrix[state0]:
+    #         if v_matrix[state0][state1][length-1] != 0:
+    #             print "last column in v_matrix: ", state0, state1, v_matrix[state0][state1][length-1]
+    #         else:
+    #             print "zero column in v_matrix: ", state0, state1, v_matrix[state0][state1][length-1]
+
+    z_list = [None] * length
+    z_list[length - 1] = arg_max_last
+    z_list[length - 2] = arg_max_second_last
+
     for i in range(length-3, -1, -1):
-        print i, i+1, i+2
-        print z_list[i+1], z_list[i+2], bp_matrix[z_list[i+1]]
-        z_list[i] = bp_matrix[z_list[i+1]][z_list[i+2]][i]
-        # print "bp[{0}][{1}][{2}] is {3}".format(z_list[i+1], z_list[i+2], i, bp_matrix[z_list[i+1]][z_list[i+2]][i])
-    # print len(bp_matrix)
-    # print length
-    return z_list
-# end of function
+        z_list[i] = bp_matrix[z_list[i+1]][z_list[i+2]][i+2]
+        # print "last for loop ", i, bp_matrix[z_list[i+1]][z_list[i+2]][i+2], bp_matrix[z_list[i+1]]
+
+    list_pairs = []
+    for i in range(length):
+        list_pairs.append((sentence[i], z_list[i]))
+    return list_pairs
+
+
+# def old_trigram_viterbi(hmm, sentence):
+#     # check input
+#     if not sentence:
+#         return []
+#
+#     # print sentence
+#     # initialize variables
+#     emission = hmm.emission_matrix
+#     init_distribution = hmm.initial_distribution
+#     transit_matrix = hmm.transition_matrix
+#
+#     v_matrix = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+#     bp_matrix = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
+#     length = len(sentence)
+#
+#     z_list = [None] * length
+#     # fill base cases, i = 1, initial 2 tags
+#     for state0, state1_dict in init_distribution.items():
+#         for state1 in state1_dict:
+#             word0 = sentence[0]
+#             word1 = sentence[1]
+#             v_matrix[state0][state1][1] = log_wrapper(init_distribution[state0][state1])\
+#                                           + log_wrapper(emission[state0][word0]) + log_wrapper(emission[state1][word1])
+#             # print state1, word1, v_matrix[state0][state1][1]
+#     # print v_matrix
+#     # inductive cases
+#     for i in range(2, length):
+#         # print "v ", v_matrix
+#         for curr_state in emission:
+#             # loop through all 2-state combinations for the previous 2 observations to find max(v*transition)
+#             # todo: bp seems wrong
+#             max_prob = float("-inf")
+#             state_0 = None
+#             state_1 = None
+#             for prior_state_0, prior_state_1_dict in transit_matrix.items():
+#                 for prior_state_1 in prior_state_1_dict:
+#                     if v_matrix[prior_state_0][prior_state_1][i-1] == 0:
+#                         v_matrix[prior_state_0][prior_state_1][i-1] = float("-inf")
+#
+#                     temp_prob = v_matrix[prior_state_0][prior_state_1][i-1]\
+#                                 + log_wrapper(transit_matrix[prior_state_0][prior_state_1][curr_state])
+#                     # if temp_prob == 0:
+#                         # print "v_matrix[{0}][{1}][{2}] is {3}".\
+#                         #     format(prior_state_0, prior_state_1, i-1, v_matrix[prior_state_0][prior_state_1][i-1])
+#                     if temp_prob > max_prob:
+#                         # print "temp_prob and max_prob: ", temp_prob, max_prob
+#                         max_prob = temp_prob
+#                         state_0 = prior_state_0
+#                         state_1 = prior_state_1
+#                         # print prior_state_0, prior_state_1, curr_state, max_prob
+#                         # print "bp[{0}][{1}]: {2}".format(curr_state, i, bp_matrix[curr_state][i])
+#                         # print "bp, curr_state", bp_matrix[curr_state][i], curr_state
+#                     # if prior_state_0 == "MD" and prior_state_1 == "verb":
+#                     #     print "MD, verb ", v_matrix[prior_state_0][prior_state_1][i-1]
+#             if state_0 and state_1 :
+#                 # print "prior_state_0 ", state_0, ", prior_state_1", state_1
+#                 v_matrix[state_1][curr_state][i]= max_prob\
+#                                          + log_wrapper(emission[curr_state][sentence[i]])
+#                 bp_matrix[state_1][curr_state][i] = state_0
+#                     # print "bp[prior_state_1][curr_state][i] ", bp_matrix[prior_state_1][curr_state][i]
+#                     # print prior_state_0, prior_state_1, curr_state, max_prob, v_matrix[curr_state][i], "bp: ", bp_matrix[curr_state][i]
+#
+#     # get the last state for z_list
+#     # print v_matrix
+#     for last_state in emission:
+#         max_prob = float("-inf")
+#         for prior_state_0, prior_state_1_dict in transit_matrix.items():
+#             for prior_state_1 in prior_state_1_dict:
+#             # print each_state, last_state
+#                 temp_prob = v_matrix[prior_state_1][last_state][length-1]
+#                 if temp_prob > max_prob:
+#                     max_prob = temp_prob
+#                     z_list[length-1] = last_state
+#                     z_list[length-2] = prior_state_1
+#                     # print "prior_state is {0}, last_state in if is {1}".format(prior_state_1, last_state)
+#
+#     # print z_list
+#     # print bp_matrix
+#     # print z_list
+#     for i in range(length-3, -1, -1):
+#         # print i, i+1, i+2
+#         # print z_list[i+1], z_list[i+2], bp_matrix[z_list[i+1]]
+#         z_list[i] = bp_matrix[z_list[i+1]][z_list[i+2]][i]
+#         # print "bp[{0}][{1}][{2}] is {3}".format(z_list[i+1], z_list[i+2], i, bp_matrix[z_list[i+1]][z_list[i+2]][i])
+#     # print len(bp_matrix)
+#     # print length
+#     return z_list
+# # end of function
 
 
 ################################################# Helper functions ##########################################
-def partition_sentences(list_of_words):
+def partition_sentences(list_of_pairs):
 
-    if list_of_words[len(list_of_words)-1] != ".":
-        list_of_words.append(".")
+    if list_of_pairs[len(list_of_pairs)-1] != ".":
+        list_of_pairs.append(".")
 
     untagged_sentences = []
     start = 0
     # run tagging
-    while start < (len(list_of_words)):
+    while start < (len(list_of_pairs)):
         # print start
-        end = list_of_words[start: ].index(".")
-        sentence = list_of_words[start:start + end]
+        end = list_of_pairs[start:].index(".")
+        sentence = list_of_pairs[start:start + end]
         sentence.append(".")
         # print sentence
         untagged_sentences.append(sentence)
         start += end+1
 
-    return  untagged_sentences
+    return untagged_sentences
 
 
 def check_accuracy(hmm, list_of_words, word_tag_in_test, order=2):
@@ -428,7 +531,7 @@ def check_accuracy(hmm, list_of_words, word_tag_in_test, order=2):
     for i in range(0, len(word_tag_in_test)):
         # print i
         # print tags_from_hmm[i], pairs_from_file[i][1]
-        if total_tagges_from_hmm[i] == word_tag_in_test[i][1]:
+        if total_tagges_from_hmm[i] == word_tag_in_test[i]:
             corrects += 1
     print total_tagges_from_hmm
     return corrects * 100.0 / len(word_tag_in_test)
@@ -441,16 +544,23 @@ def log_wrapper(number):
         return log(number)
 
 def update_hmm(emission_matrix, sentence, words_in_training, epsilon=0.00001):
-    for state in emission_matrix:
-        for input_word in sentence:
-            if (input_word != ".") and (input_word not in words_in_training) and (emission_matrix[state][input_word] == 0):
-                for word in emission_matrix[state]:
+    for input_word in sentence:
+        if input_word not in words_in_training:
+            for state in emission_matrix:
+                for old_word in emission_matrix[state]:
                     # print state, word, emission_matrix[state][word], epsilon
-                    emission_matrix[state][word] += epsilon
+                    emission_matrix[state][old_word] += epsilon
                 emission_matrix[state][input_word] += epsilon
-            sum_all = reduce((lambda x, y: x + y), emission_matrix[state].values())
-            for word in emission_matrix[state]:
-                emission_matrix[state][word] = emission_matrix[state][word]/sum_all
+
+    for state in emission_matrix:
+        total = 0
+        # get sum
+        # sum_all = reduce((lambda x, y: x + y), emission_matrix[state].values())
+        for word in emission_matrix[state]:
+            total += emission_matrix[state][word]
+        # normalize
+        for word in emission_matrix[state]:
+            emission_matrix[state][word] = emission_matrix[state][word]/total
         # print "sum: ", reduce((lambda x, y: x + y), emission_matrix[state].values())
 
 
@@ -509,6 +619,7 @@ def compute_transition_matrix(order, smoothing, count_tags, num_tokens, tag_sequ
         for tag_i_2, tag_i_1_dict in tag_sequence2.items():
             for tag_i_1, tag_i_dict in tag_i_1_dict.items():
                 for tag_i in tag_i_dict:
+                    # print "in transition ", tag_i_2, tag_i_1, tag_i
                     result_matrix[tag_i_2][tag_i_1][tag_i] = \
                         lambdas[2] * float(tag_sequence2[tag_i_2][tag_i_1][tag_i])/tag_sequence1[tag_i_2][tag_i_1]
                     + lambdas[1] * float(tag_sequence1[tag_i_1][tag_i]) / count_tags[tag_i_1]
@@ -533,23 +644,13 @@ def find_first_of_next_sentence(training_data, next_sentence, boundary):
 
 
 def decompose_a_pair(dictionary, index):
-
     word = dictionary[index][0]
     tag = dictionary[index][1]
     return word, tag
 # end of function
 
 
-# def add_to_dict_cell(dict, key1, key2=None, key3=None):
-#     if key3:
-#         dict[key1][key2][key3] += 1
-#     elif key2:
-#         dict[key1][key2] += 1
-#     else:
-#         # print key1, dict[key1]
-#         dict[key1] +=1
-# # end of function
-
+# def experiment(filename, percentage, smoothing, order):
 
 ################################################# testing functions ########################################
 def test_trigram_viterbi(hmm, sentence):
@@ -694,14 +795,14 @@ def test_find_first_of_next_sentence(training_data, next_sentence, boundary):
 # end of function
 
 # initialize training data
-tuple_of_3_returns = read_pos_file("test_viterbi_tagged.txt")
-# tuple_of_3_returns = read_pos_file("training.txt")
+# tuple_of_3_returns = read_pos_file("mytest_tagged.txt")
+tuple_of_3_returns = read_pos_file("training.txt")
 
 training_data = tuple_of_3_returns[0]
 unique_words = tuple_of_3_returns[1]
 unique_tags = tuple_of_3_returns[2]
-order = 3
-smoothing = False
+# order = 3
+# smoothing = False
 # num_of_tokens, count_tag_word, count_tags, count_tag12, count_tag123 = test_compute_counts(training_data, order, False)
 # print "unique_tags", unique_tags
 # print "num_tokens", num_of_tokens
@@ -720,23 +821,33 @@ smoothing = False
 # print hmm.initial_distribution
 # test_compute_emission_probabilities(unique_words, unique_tags, count_tag_word, count_tags)
 # print test_compute_initial_distribution(training_data, order)
-# testdata_tagged = read_pos_file("testdata_tagged.txt")
-testdata_tagged = read_pos_file("test_viterbi_tagged.txt")
+testdata_tagged = read_pos_file("testdata_tagged.txt")
+# testdata_tagged = read_pos_file("mytest_tagged.txt")
 answers = testdata_tagged[0]
 # unique_tags = testdata_tagged[1]
 # unique_words = testdata_tagged[2]
 #
-# untagged_words = read_untagged_data("testdata_untagged.txt")
-untagged_words = read_untagged_data("test_viterbi_untagged.txt")
+untagged_words = read_untagged_data("testdata_untagged.txt")
+# untagged_words = read_untagged_data("mytest_untagged.txt")
 # print test_partition_sentences(untagged_words)
+
+# sentence = ['The', 'cat', 'ran'] #, '.']#, 'away', 'today', '.']
+# training_data = [('The','DT'),('cat','NN'),('ran','VBD')] #, ('.', '.')] #,('away','RB'),('today','NN'),('.','.')]
+# unique_tags = ['DT','NN','VBD'] #,'.'] #,'RB']
+# unique_words = ['The', 'cat', 'ran'] #, '.']
+order = 3
+smoothing = True
 
 trained_hmm = build_hmm(training_data, unique_tags, unique_words, order, smoothing)
 # print trained_hmm.emission_matrix
-# print trained_hmm.transition_matrix
+
+update_hmm(trained_hmm.emission_matrix, untagged_words, list(unique_words))
+# print trained_hmm.emission_matrix
+# for state0 in trained_hmm.transition_matrix:
+#     for state1 in trained_hmm.transition_matrix[state0]:
+#         print state0, state1, trained_hmm.transition_matrix[state0][state1]
 # print trained_hmm.order
 # print trained_hmm.initial_distribution
-update_hmm(trained_hmm.emission_matrix, untagged_words, list(unique_words))
-
 sentences = partition_sentences(untagged_words)
-print test_trigram_viterbi(trained_hmm, sentences[0])
-# print check_accuracy(trained_hmm, untagged_words, answers, order)
+# print test_trigram_viterbi(trained_hmm, sentences[0])
+print check_accuracy(trained_hmm, untagged_words, answers, order)
