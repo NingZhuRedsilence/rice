@@ -1,0 +1,10 @@
+Boys / NNS
+and / CC
+girls / NNS
+ran / VBD
+. / .
+
+The / DT
+sun / NN
+set / VBD
+. / .
